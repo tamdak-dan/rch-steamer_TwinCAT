@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="E_SystemState" Id="{6d3cbdae-193b-4d46-b0cc-2b77a8d0c420}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE E_SystemState :
+(
+    // --- Boot / idle ---------------------------------------------------
+    InitController      := 0,    // S0   : Controller Initialization (one-shot config, params, PID setup)
+    SesOff              := 70,    // S6   : SES Off (idle / standby, waiting for SES ON command)
+
+    // --- Startup sequence ----------------------------------------------
+    CheckIfHot          := 10,  // S101 : Check if system was just running (hot restart shortcut)
+    FillWater       	:= 20,  // S111 : SES Initialization - Fill Water
+    PurgeVessel     	:= 30,   // S11  : SES Initialization - Purge Vessel
+    SetDiffPressure 	:= 40,   // S13  : SES Initialization - Setting Differential Pressure
+    InitMain            := 50,    // S1   : SES Initialization - Main (final checks before flow)
+
+    // --- Run -------------------------------------------------------------
+    SteamFlowing        := 60,    // S4   : Steam Flowing (normal production, PID flow control)
+
+    // --- Service / abnormal ----------------------------------------------
+    Maintenance         := 80,    // S7   : Maintenance mode (manual actuation, loopback)
+    Fault               := 99    // S10  : Fault (latched; operator reset returns to ControllerInit)
+	
+) INT;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

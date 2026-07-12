@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="ST_HmiSetpoints" Id="{a1b2c3d4-0006-4a5b-9c8d-e1f200000006}">
+    <Declaration><![CDATA[//=============================================================================
+// ST_HmiSetpoints
+//-----------------------------------------------------------------------------
+// Direction: Pi -> PLC (request) and PLC -> Pi (applied echo in ST_HmiStatus).
+// Pi writes the whole struct, then pulses stCommand.bApplySetpoints.
+// FB_Hmi clamps each value to ST_SetpointLimits before applying, and the
+// clamped result is echoed in ST_HmiStatus.rSet*Applied so the UI always
+// shows the truth, not the request.
+//=============================================================================
+{attribute 'pack_mode' := '1'}
+TYPE ST_HmiSetpoints :
+STRUCT
+    rSetFlow       : REAL;   // requested flow setpoint      [SLM]
+    rSetDsPressure : REAL;   // downstream pressure setpoint [Torr]
+    rSetSpaTemp    : REAL;   // SPA temperature setpoint     [degC]
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

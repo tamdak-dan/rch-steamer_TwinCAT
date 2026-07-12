@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.0">
+  <DUT Name="ST_ProcessValues" Id="{a1b2c3d4-0002-4a5b-9c8d-e1f200000002}">
+    <Declaration><![CDATA[//=============================================================================
+// ST_ProcessValues
+//-----------------------------------------------------------------------------
+// Live process data in ENGINEERING UNITS (Torr, degC, SLM).
+// Populated by FB_FlowCalc / analog input scaling, consumed by FB_Hmi,
+// FB_FaultMonitor and FB_PressureControl.
+// pack_mode 1 so pyads structure_def offsets are byte-exact.
+//=============================================================================
+{attribute 'pack_mode' := '1'}
+TYPE ST_ProcessValues :
+STRUCT
+    // --- Pressures [Torr] -------------------------------- (legacy V-mem)
+    rPt1Upstream    : REAL;    // PT-1 upstream pressure       (P1)
+    rPt2Downstream  : REAL;    // PT-2 downstream pressure     (P2)
+    rPt3AtmRef      : REAL;    // PT-3 atmospheric reference   (P3)
+    rDiffPressure   : REAL;    // PT-1 - PT-2 differential
+
+    // --- Temperatures [degC] ------------------------------
+    rTc1Spa         : REAL;    // TC1 SPA temperature
+    rTc2FlowMeter   : REAL;    // TC2 flow meter temperature
+    rTc3External    : REAL;    // TC3 external heater temperature
+    rTc4Delivery    : REAL;    // TC4 delivery line temperature
+
+    // --- Flow [SLM] ---------------------------------------
+    rFlowActual     : REAL;    // F3 calculated steam flow     (V1472 filtered)
+    rFlowSetpoint   : REAL;    // active flow setpoint         (V1550 SFR)
+    rFlowRated      : REAL;    // rated max flow               (V1552 RATED_FLOW)
+
+    // --- Discrete process status --------------------------
+    bWaterFull      : BOOL;    // full water level             (B1601.10)
+    bWaterLow       : BOOL;    // low water level              (B1601.9)
+    bWaterEmpty     : BOOL;    // empty water level            (B1601.11)
+    bSpaFlushed     : BOOL;    // SPA flushed / purge complete
+    bExtHeaterOn    : BOOL;    // external heater enabled      (B7402.12)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

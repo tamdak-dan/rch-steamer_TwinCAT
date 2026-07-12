@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="MAIN" Id="{f6813ce8-0276-401c-9fea-66add7e7619a}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	fbFaultMonitor 		: FB_FaultMonitor;
+	fbFlowCalcs 		: FB_FlowCalcs;
+	fbHmi 				: FB_Hmi;
+	fbPressureControl 	: FB_PressureControl;
+	fbPurge 			: FB_Purge;
+	fbStateMachine 		: FB_StateMachine;
+	fbWaterFill 		: FB_WaterFill;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

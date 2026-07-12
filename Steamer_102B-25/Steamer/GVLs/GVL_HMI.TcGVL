@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <GVL Name="GVL_HMI" Id="{a1b2c3d4-0008-4a5b-9c8d-e1f200000008}">
+    <Declaration><![CDATA[//=============================================================================
+// GVL_HMI
+//-----------------------------------------------------------------------------
+// The ONLY variables the RPi/pyads client touches. Three symbols, three jobs:
+//
+//   GVL_HMI.stStatus           PLC -> Pi   read-only  (one bulk read per poll)
+//   GVL_HMI.stCommand          Pi -> PLC   buttons + heartbeat
+//   GVL_HMI.stSetpointRequest  Pi -> PLC   config values, applied via
+//                                          stCommand.bApplySetpoints
+//
+// Everything else in the PLC is off-limits to the HMI by convention.
+// If the HMI needs a new value, add it to ST_HmiStatus — never let the
+// Pi read internal FB state directly, or the interface contract rots.
+//
+// pyads access, e.g.:
+//   plc = pyads.Connection('5.x.x.x.1.1', 851)
+//   status = plc.read_by_name('GVL_HMI.stStatus', structure_def=HMI_STATUS_DEF)
+//   plc.write_by_name('GVL_HMI.stCommand.bSesOn', True)
+//=============================================================================
+{attribute 'qualified_only'}
+VAR_GLOBAL
+    stStatus          : ST_HmiStatus;      // PLC -> Pi
+    stCommand         : ST_HmiCommand;     // Pi -> PLC (FB_Hmi consumes+clears pulses)
+    stSetpointRequest : ST_HmiSetpoints;   // Pi -> PLC (applied on bApplySetpoints)
+END_VAR
+VAR_GLOBAL CONSTANT
+    // Pi poll rate is expected >= 1 Hz; comm loss declared after this timeout
+    T_HMI_HEARTBEAT_TIMEOUT : TIME := T#5S;
+    S_PLC_VERSION           : STRING(31) := 'V 0.x';
+END_VAR
+]]></Declaration>
+  </GVL>
+</TcPlcObject>

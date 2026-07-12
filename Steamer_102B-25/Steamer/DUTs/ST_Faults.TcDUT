@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="ST_Faults" Id="{a1b2c3d4-0003-4a5b-9c8d-e1f200000003}">
+    <Declaration><![CDATA[//=============================================================================
+// ST_Faults
+//-----------------------------------------------------------------------------
+// One named BOOL per fault, replacing the legacy B1600.x / B1601.x / B1602.x
+// bit-of-word addressing. Names taken from the element documentation table
+// in the DS6 source. Legacy address noted per field for commissioning.
+// pack_mode 1: each BOOL = 1 byte, so pyads can map this with a simple
+// structure_def or read it as a byte array.
+//=============================================================================
+{attribute 'pack_mode' := '1'}
+TYPE ST_Faults :
+STRUCT
+	// --- Legacy system faults --------------------------------------------
+    bCabinetFlood        : BOOL;   // Cabinet flood fault
+    bPowerFault          : BOOL;   // Power fault status
+    bPneumaticHigh       : BOOL;   // Pneumatic air pressure high
+    bPneumaticLow        : BOOL;   // Pneumatic air pressure low
+    bUpstreamOverPress   : BOOL;   // Upstream over pressure
+    bDownstreamOverPress : BOOL;   // Downstream over pressure
+    bRegUpcLow           : BOOL;   // Regulate UPC low
+    bRegUpcHigh          : BOOL;   // Regulate UPC high
+    bEcsaEquipment       : BOOL;   // ECSA equipment fault
+    bFlowLow             : BOOL;   // Flow low fault
+    bFlowHigh            : BOOL;   // Flow high fault
+    bWaterEmpty          : BOOL;   // Empty water level fault
+    bWaterFill           : BOOL;   // Water fill fault
+    bWaterRegulation     : BOOL;   // Water regulation fault
+    bPurifierTempSet     : BOOL;   // Purifier temperature set fault
+    bPurifierTempReg     : BOOL;   // Purifier temperature regulate fault
+    bDownstreamStartHigh : BOOL;   // Downstream start high fault (S13)
+    bN2PurgeOverPress    : BOOL;   // N2 purge over pressure
+    bN2PurgeUnderPress   : BOOL;   // N2 purge under pressure
+    bN2Fill              : BOOL;   // N2 fill fault
+    bWaterDrain          : BOOL;   // Water drain fault
+    bStartupUsOverPress  : BOOL;   // Startup upstream over pressure
+    bStartupDiffPress    : BOOL;   // Startup differential pressure
+    bPt1Hardware         : BOOL;   // PT1 hardware fault
+    bPt2Hardware         : BOOL;   // PT2 hardware fault
+    bVesselPurge         : BOOL;   // Vessel purge fault
+    bOverfilled          : BOOL;   // Overfilled fault
+    bFlowRateError       : BOOL;   // Flow rate error fault
+    bLoDutyCycle         : BOOL;   // Low duty cycle fault
+    bHiDutyCycle         : BOOL;   // High duty cycle fault
+
+    // --- New-system faults ---------------------------------------
+    bHmiCommLoss         : BOOL;   // (new) RPi heartbeat timeout
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

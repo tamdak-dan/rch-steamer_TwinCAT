@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="ST_HmiStatus" Id="{a1b2c3d4-0004-4a5b-9c8d-e1f200000004}">
+    <Declaration><![CDATA[//=============================================================================
+// ST_HmiStatus
+//-----------------------------------------------------------------------------
+// EVERYTHING the RPi HMI displays, packed into ONE struct so pyads can
+// refresh the whole UI with a single read:
+//     plc.read_by_name('GVL_HMI.stStatus', structure_def=ST_HMI_STATUS)
+//
+// Direction: PLC -> Pi only. The Pi must never write this struct.
+// pack_mode 1: byte-aligned, no padding — pyads structure_def matches 1:1.
+//=============================================================================
+{attribute 'pack_mode' := '1'}
+TYPE ST_HmiStatus :
+STRUCT
+    // --- Liveness / handshake -------------------------------------------
+    nPlcHeartbeat   : UDINT;             // increments every PLC cycle group; Pi checks it changes
+    nHmiHeartbeatEcho : UDINT;           // last heartbeat value received from Pi (debug aid)
+    bHmiOnline      : BOOL;              // PLC's view: Pi heartbeat is alive
+
+    // --- System state ----------------------------------------------------
+    eState          : E_SystemState;     // current state (INT under the hood)
+    sStateName      : STRING(31);        // human-readable, e.g. 'SteamFlowing' (state pill)
+    bReady          : BOOL;              // green Ready dot (temps in band, no faults)
+    bAlarmActive    : BOOL;              // red Alarm dot (any fault bit set)
+    nActiveFaults   : UINT;              // count of active fault bits (Alarms page stat card)
+
+    // --- Process data ------------------------------------------------------
+    stProcess       : ST_ProcessValues;  // pressures, temps, flow, water level
+    rFlowPercent    : REAL;              // rFlowActual / rFlowRated * 100 (bar graph)
+
+    // --- PID loop outputs [0..100 %] (Run page bars) ------------------------
+    arPidOutput     : ARRAY[1..6] OF REAL;  // 1 dP, 2 SPA temp, 3 heater, 4 water, 5 FM temp, 6 spare
+
+    // --- Faults --------------------------------------------------------------
+    stFaults        : ST_Faults;
+
+    // --- Setpoint echo (what the PLC actually accepted after clamping) --------
+    rSetFlowApplied     : REAL;          // SLM
+    rSetDsPressApplied  : REAL;          // Torr
+    rSetSpaTempApplied  : REAL;          // degC
+
+    // --- Maintenance feedback (Maintenance page) --------------------------------
+    bMaintModeActive    : BOOL;          // TRUE while eState = Maintenance
+    arValveState        : ARRAY[1..4] OF BOOL;  // SV1 drain, SV2 main, SV3 process, SV4 water
+    bLoopbackOn         : BOOL;          // legacy C31
+    bDrainModeOn        : BOOL;
+
+    // --- System info page -------------------------------------------------------
+    sPlcVersion     : STRING(31);        // version of the PLC program
+    sHmiVersion     : STRING(31);        // echoed from Pi at startup, shown for record
+    nUptimeSeconds  : UDINT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

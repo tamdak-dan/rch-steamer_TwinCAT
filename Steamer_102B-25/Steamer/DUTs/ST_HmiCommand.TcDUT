@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="ST_HmiCommand" Id="{a1b2c3d4-0005-4a5b-9c8d-e1f200000005}">
+    <Declaration><![CDATA[//=============================================================================
+// ST_HmiCommand
+//-----------------------------------------------------------------------------
+// Direction: Pi -> PLC. Consume-on-read pattern:
+//   * Pi writes TRUE to a command bit (pyads write_by_name).
+//   * FB_Hmi latches it into its outputs for exactly one PLC cycle,
+//     then writes FALSE back. The Pi never needs to clear anything.
+//
+//=============================================================================
+{attribute 'pack_mode' := '1'}
+TYPE ST_HmiCommand :
+STRUCT
+	// --- Heartbeat ------------------------------------------------
+    nHmiHeartbeat   : UDINT;   // Pi increments each poll cycle; never reset
+
+    // --- Run page buttons ------------------------------------------------
+    bSesOn          : BOOL;    // start command
+    bSesOff         : BOOL;    // stop command 
+
+    // --- Alarms page -------------------------------------------------------
+    bFaultReset     : BOOL;    // reset all faults
+    bFaultAck       : BOOL;    // acknowledge (silences banner, faults stay listed)
+
+    // --- Maintenance page ----------------------------------------------------
+    bEnterMaint     : BOOL;    // request Maintenance state
+    bExitMaint      : BOOL;    // leave Maintenance 
+    aValveCmd      	: ARRAY[1..4] OF BOOL;  // SV1 drain, SV2 main, SV3 process, SV4 water
+    bLoopbackOn     : BOOL;    // legacy C31 loopback mode
+    bDrainMode      : BOOL;    // drain mode
+    bDpControlOff   : BOOL;    // suspend diff pressure control
+    bTempControlOff : BOOL;    // suspend purifier temp control
+    bExtHeaterEnable: BOOL;    // external heater enable
+
+    // --- Config page ----------------------------------------------------------
+    bApplySetpoints : BOOL;    // pulse: validate + apply stSetpointRequest
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
