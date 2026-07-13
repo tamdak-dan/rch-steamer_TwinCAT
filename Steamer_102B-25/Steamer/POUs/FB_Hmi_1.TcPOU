@@ -26,7 +26,7 @@
 //   IF fbHmi.bCmdSesOff     THEN fbStateMachine.RequestStop();   END_IF
 //   IF fbHmi.bCmdFaultReset THEN fbFaultMonitor.ResetAll();      END_IF
 //=============================================================================
-FUNCTION_BLOCK FB_Hmi
+FUNCTION_BLOCK FB_Hmi_1
 VAR_INPUT
     eState          : E_SystemState;
     stProcess       : ST_ProcessValues;
@@ -34,7 +34,7 @@ VAR_INPUT
     bReady          : BOOL;                   // temps in band, ok to flow
     arPidOutput     : ARRAY[1..6] OF REAL;    // loop outputs 0..100 %
     arValveActual   : ARRAY[1..4] OF BOOL;    // real valve output states
-    stLimits        : ST_SetpointLimits;      // clamp ranges (defaults ok)
+    //stLimits        : ST_SetpointLimits;      // clamp ranges (defaults ok)
 END_VAR
 VAR_OUTPUT
     // one-cycle command pulses for MAIN / state machine
@@ -110,7 +110,7 @@ END_IF
 
 //=========================== 3. Maintenance overrides =========================
 // Levels (not pulses) — pass through only while in Maintenance state.
-IF eState = E_SystemState.Maintenance THEN
+(* IF eState = E_SystemState.Maintenance THEN
     FOR i := 1 TO 4 DO
         arValveOverride[i] := GVL_HMI.stCommand.aValveCmd[i];
     END_FOR
@@ -135,10 +135,10 @@ ELSE
     GVL_HMI.stCommand.bTempControlOff := FALSE;
 END_IF
 // heater enable is allowed in any state (config-level, not maintenance-only)
-bExtHeaterEnable := GVL_HMI.stCommand.bExtHeaterEnable;
+bExtHeaterEnable := GVL_HMI.stCommand.bExtHeaterEnable; *)
 
 //=========================== 4. Setpoint apply + clamp ========================
-bSetpointsChanged := FALSE;
+(* bSetpointsChanged := FALSE;
 IF GVL_HMI.stCommand.bApplySetpoints THEN
     GVL_HMI.stCommand.bApplySetpoints := FALSE;
 
@@ -152,7 +152,7 @@ IF GVL_HMI.stCommand.bApplySetpoints THEN
                                         GVL_HMI.stSetpointRequest.rSetSpaTemp,
                                         stLimits.rSpaTempMax);
     bSetpointsChanged := TRUE;
-END_IF
+END_IF *)
 
 //=========================== 5. Publish status ================================
 GVL_HMI.stStatus.nPlcHeartbeat     := GVL_HMI.stStatus.nPlcHeartbeat + 1;

@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <GVL Name="GVL_IO" Id="{2a04d97b-78dd-4508-9070-7a711c04c75b}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	nTempSensor AT %I* : INT;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

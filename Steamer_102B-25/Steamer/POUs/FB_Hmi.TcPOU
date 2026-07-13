@@ -3,14 +3,133 @@
   <POU Name="FB_Hmi" Id="{8f208da5-e654-4ab9-8425-89789dddd507}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_Hmi
 VAR_INPUT
+	eState          : E_SystemState;
+    stProcess       : ST_ProcessValues;
+    stFaults        : ST_Faults;              // from FB_FaultMonitor
+    bReady          : BOOL;                   // temps in band, ok to flow
+    // arPidOutput     : ARRAY[1..6] OF REAL;    // loop outputs 0..100 %
+    // arValveActual   : ARRAY[1..4] OF BOOL;    // real valve output states
+    // stLimits        : ST_SetpointLimits;      // clamp ranges (defaults ok)
 END_VAR
 VAR_OUTPUT
+	// one-cycle command pulses for MAIN / state machine
+    bCmdSesOn       	: BOOL;
+    bCmdSesOff      	: BOOL;
+    bCmdFaultReset  	: BOOL;
+    bCmdFaultAck    	: BOOL;
+    bCmdEnterMaint  	: BOOL;
+    bCmdExitMaint   	: BOOL;
+    bSetpointsChanged 	: BOOL;
+	
+	// heartbeat supervision	
+	bHmiCommLoss    : BOOL;  // feed into ST_Faults.bHmiCommLoss
 END_VAR
+
 VAR
+	// heartbeat supervision
+    nLastHeartbeat  : UDINT;
+    tonHbTimeout    : TON;
+    bFirstCycle     : BOOL := TRUE;
+	
+	// uptime
+    tonUptime       : TON;
+    nUptimeSeconds  : UDINT;
+    fbTick          : TON;
 END_VAR
+
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[//=========================== 1. Heartbeat supervision =========================
+// Pi increments stCommand.nHmiHeartbeat every poll. If it stops changing
+// for T_HMI_HEARTBEAT_TIMEOUT, declare comm loss.
+IF (GVL_HMI.stCommand.nHmiHeartbeat = nLastHeartbeat) AND NOT bFirstCycle THEN
+	tonHbTimeout(IN := TRUE, PT := GVL_HMI.T_HMI_HEARTBEAT_TIMEOUT);
+ELSE
+	tonHbTimeout(IN := FALSE);
+END_IF
+
+bHmiCommLoss := tonHbTimeout.Q;
+nLastHeartbeat := GVL_HMI.stCommand.nHmiHeartbeat;
+bFirstCycle := FALSE;
+
+//=========================== 2. Consume command pulses ========================
+// Latch each request to the output for exactly one cycle, then clear the
+// GVL bit so the Pi never has to write FALSE and a stuck TRUE cannot
+// repeat-fire.
+bCmdSesOn      := GVL_HMI.stCommand.bSesOn;
+bCmdSesOff     := GVL_HMI.stCommand.bSesOff;
+bCmdFaultReset := GVL_HMI.stCommand.bFaultReset;
+bCmdFaultAck   := GVL_HMI.stCommand.bFaultAck;
+bCmdEnterMaint := GVL_HMI.stCommand.bEnterMaint;
+bCmdExitMaint  := GVL_HMI.stCommand.bExitMaint;
+
+GVL_HMI.stCommand.bSesOn      := FALSE;
+GVL_HMI.stCommand.bSesOff     := FALSE;
+GVL_HMI.stCommand.bFaultReset := FALSE;
+GVL_HMI.stCommand.bFaultAck   := FALSE;
+GVL_HMI.stCommand.bEnterMaint := FALSE;
+GVL_HMI.stCommand.bExitMaint  := FALSE;
+
+// Safety interlock: ignore SES ON during comm-lost or active fault display;
+// the state machine makes the final call, this is belt-and-braces.
+IF bHmiCommLoss THEN
+    bCmdSesOn := FALSE;
+END_IF
+
+//=========================== 5. Publish status ================================
+GVL_HMI.stStatus.nPlcHeartbeat     := GVL_HMI.stStatus.nPlcHeartbeat + 1;
+GVL_HMI.stStatus.nHmiHeartbeatEcho := GVL_HMI.stCommand.nHmiHeartbeat;
+GVL_HMI.stStatus.bHmiOnline        := NOT bHmiCommLoss;
+
+GVL_HMI.stStatus.eState       := eState;
+GVL_HMI.stStatus.sStateName   := TO_STRING(eState);
+GVL_HMI.stStatus.bReady       := bReady;
+
+GVL_HMI.stStatus.stProcess    := stProcess;
+(* IF stProcess.rFlowRated > 0.0 THEN
+    GVL_HMI.stStatus.rFlowPercent := 100.0 * stProcess.rFlowActual / stProcess.rFlowRated;
+ELSE
+    GVL_HMI.stStatus.rFlowPercent := 0.0;
+END_IF
+
+FOR i := 1 TO 6 DO
+    GVL_HMI.stStatus.arPidOutput[i] := arPidOutput[i];
+END_FOR
+
+GVL_HMI.stStatus.stFaults := stFaults;
+GVL_HMI.stStatus.stFaults.bHmiCommLoss := bHmiCommLoss;
+
+// count active fault bytes (pack_mode 1: one BOOL per byte)
+nFaultCount := 0;
+pFaultByte := ADR(GVL_HMI.stStatus.stFaults);
+FOR i := 0 TO TO_INT(SIZEOF(ST_Faults)) - 1 DO
+    IF pFaultByte[i] <> 0 THEN
+        nFaultCount := nFaultCount + 1;
+    END_IF
+END_FOR
+GVL_HMI.stStatus.nActiveFaults := nFaultCount;
+GVL_HMI.stStatus.bAlarmActive  := (nFaultCount > 0);
+
+GVL_HMI.stStatus.rSetFlowApplied    := stSetpoints.rSetFlow;
+GVL_HMI.stStatus.rSetDsPressApplied := stSetpoints.rSetDsPressure;
+GVL_HMI.stStatus.rSetSpaTempApplied := stSetpoints.rSetSpaTemp;
+
+GVL_HMI.stStatus.bMaintModeActive := (eState = E_SystemState.Maintenance);
+FOR i := 1 TO 4 DO
+    GVL_HMI.stStatus.arValveState[i] := arValveActual[i];
+END_FOR
+GVL_HMI.stStatus.bLoopbackOn  := bLoopbackOn;
+GVL_HMI.stStatus.bDrainModeOn := bDrainMode; *)
+
+GVL_HMI.stStatus.sPlcVersion := GVL_HMI.S_PLC_VERSION;
+
+// uptime counter (1 s self-retriggering tick)
+fbTick(IN := NOT fbTick.Q, PT := T#1S);
+IF fbTick.Q THEN
+    nUptimeSeconds := nUptimeSeconds + 1;
+END_IF
+GVL_HMI.stStatus.nUptimeSeconds := nUptimeSeconds;
+]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>
