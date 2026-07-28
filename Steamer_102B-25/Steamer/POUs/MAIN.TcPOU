@@ -3,6 +3,10 @@
   <POU Name="MAIN" Id="{f6813ce8-0276-401c-9fea-66add7e7619a}" SpecialFunc="None">
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
+	// HMI Variables
+	HMI_bRun 	: BOOL;
+	HMI_nPT1	: INT;	
+
 	fbFaultMonitor 		: FB_FaultMonitor;
 	fbFlowCalcs 		: FB_FlowCalcs;
 	fbHmi 				: FB_Hmi;
@@ -13,7 +17,8 @@ VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[GVL_io.bOutput_1 := HMI_bRun;
+HMI_nPT1 := TO_INT(GVL_IO.nTempSensor);]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

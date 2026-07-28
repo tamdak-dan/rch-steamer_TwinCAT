@@ -28,9 +28,16 @@
 		</System>
 		<Plc>
 			<Project GUID="{0620E3FE-F520-43EC-B6C2-27AFBA942A9A}" Name="Steamer" PrjFilePath="Steamer\Steamer.plcproj" TmcFilePath="Steamer\Steamer.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{8C6045F7-591F-F55F-73B4-783D49419EB4}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{4E8CD80B-525A-1828-15DF-F921EEB45BE5}" TmcPath="Steamer\Steamer.tmc">
 					<Name>Steamer Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+					<Vars VarGrpType="2" AreaNo="1">
+						<Name>PlcTask Outputs</Name>
+						<Var>
+							<Name>GVL_IO.bOutput_1</Name>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
 					<Vars VarGrpType="1">
 						<Name>PlcTask Inputs</Name>
 						<Var>
@@ -447,6 +454,9 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 	<Mappings>
 		<MappingInfo Identifier="{00000000-2001-0850-0020-500810000403}" Id="#x02030010"/>
 		<OwnerA Name="TIPC^Steamer^Steamer Instance">
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 3 (EL2008)">
+				<Link VarA="PlcTask Outputs^GVL_IO.bOutput_1" VarB="Channel 1^Output"/>
+			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 5 (EL3314)">
 				<Link VarA="PlcTask Inputs^GVL_IO.nTempSensor" VarB="TC Inputs Channel 1^Value"/>
 			</OwnerB>
