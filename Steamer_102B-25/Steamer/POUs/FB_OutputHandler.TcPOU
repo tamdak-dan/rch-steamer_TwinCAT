@@ -1,0 +1,171 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_OutputHandler" Id="{035bd223-4782-4b25-9fd3-97d3ad8a81a2}" SpecialFunc="None">
+    <Declaration><![CDATA[//=============================================================================
+// FB_OutputHandler
+//-----------------------------------------------------------------------------
+// The SINGLE WRITER for every physical output coil (GVL_IO.qx*).
+// No other POU may assign a valve or heater output. This eliminates the
+// multi-writer races the original ladder was prone to (any rung could drive
+// any Y coil).
+//
+// SV1..SV4 are fast-acting ON/OFF solenoids: fully open or fully closed,
+// never modulated. All valve logic here is therefore boolean. (The PID
+// loops in FB_PressureControl drive continuous outputs elsewhere - most
+// likely the analog output card - NOT these solenoids.)
+//
+// Responsibilities:
+//   1. Resolve each valve's command from the current context:
+//        - Maintenance state -> HMI manual overrides (already state-gated)
+//        - SesOff            -> safe shutdown incl. SV2 pressure relief
+//        - Fault             -> hard close everything
+//        - running states    -> automatic requests (fill / purge / delivery)
+//   2. Enforce hard interlocks that NO state may bypass.
+//   3. Force heaters off whenever the system is not running.
+//   4. Publish arValveState for HMI feedback.
+//
+// LAST call in MAIN, after the state machine + control FBs produced intent.
+//=============================================================================
+FUNCTION_BLOCK FB_OutputHandler
+VAR_INPUT
+    eState           : E_SystemState;
+
+    // --- automatic sources (intent from control/sequence FBs) ---
+    bWaterFillValve  : BOOL;	// FB_WaterFill request  -> SV4
+    bPurgeValve      : BOOL;	// FB_Purge request      -> SV2 during purge
+    bDeliveryPermit  : BOOL;	// state machine: SV3 delivery allowed
+    bExtHeaterEnable : BOOL;	// HMI heater enable
+
+    // --- maintenance overrides (FALSE outside Maintenance; gated in FB_Hmi) ---
+    arValveOverride  : ARRAY[1..4] OF BOOL;   // 1=SV1 2=SV2 3=SV3 4=SV4
+
+    // --- process feedback needed for actuation timing ---
+    stProcess        : ST_ProcessValues;
+END_VAR
+VAR_OUTPUT
+    // feedback for HMI (what we actually commanded this cycle)
+    arValveState     : ARRAY[1..4] OF BOOL;
+    bHeatersOn       : BOOL;
+END_VAR
+VAR
+    // resolved valve commands before interlocks
+    bSV1_DrainValve        : BOOL;
+    bSV2_SpaValve          : BOOL;
+    bSV3_DeliveryValve     : BOOL;
+    bSV4_WaterInletValve        : BOOL;
+
+    // resolved heater commands
+    bH1Upstream      : BOOL;
+    bH2Purifier      : BOOL;
+    bFmHeater        : BOOL;
+    bExtHeater       : BOOL;
+
+    // SesOff SV2 pressure relief delayed close
+    tonSv2Close      : TON;
+
+    bRunningState    : BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Convenience: are we in a state that runs process automatically?
+bRunningState := (eState = E_SystemState.FillWater)
+              OR (eState = E_SystemState.PurgeVessel)
+              OR (eState = E_SystemState.SetDiffPressure)
+              OR (eState = E_SystemState.SteamPrecheck)
+              OR (eState = E_SystemState.SteamFlowing);
+
+//============================================================================
+// 1. RESOLVE VALVE COMMANDS BY CONTEXT  (all boolean - solenoids are on/off)
+//============================================================================
+CASE eState OF
+
+    //-- Manual mode: HMI overrides drive the valves directly --------------
+    E_SystemState.Maintenance:
+        bSV1_DrainValve    		:= arValveOverride[1];
+        bSV2_SpaValve      		:= arValveOverride[2];
+        bSV3_DeliveryValve 		:= arValveOverride[3];
+        bSV4_WaterInletValve    := arValveOverride[4];
+
+    //-- Safe shutdown: SV1/3/4 closed; SV2 pressure-relief then delayed ----
+    //   SV2 held open until upstream pressure < 700 Torr
+    E_SystemState.SesOff, E_SystemState.InitController, E_SystemState.CheckIfHot, E_SystemState.Fault:
+        bSV1_DrainValve    := FALSE;
+        bSV3_DeliveryValve := FALSE;
+        bSV4_WaterInletValve    := FALSE;
+        tonSv2Close(IN := (stProcess.rPt1Upstream < GVL_SysParameters.rUpstreamPressureReleived),
+                    PT := GVL_SysParameters.tSv2CloseDelay);
+        bSV2_SpaValve := NOT tonSv2Close.Q;   // stay open until relieved+delay
+
+    //-- Running states: automatic intent from sequence FBs ------------------
+    ELSE
+        tonSv2Close(IN := FALSE);   // keep the relief timer reset while running
+
+        // Water fill sequence owns SV4
+        bSV4_WaterInletValve := bWaterFillValve;
+
+        // SV2 main: open during purge, and held open while steam is flowing
+        bSV2_SpaValve := bPurgeValve OR (eState = E_SystemState.SteamFlowing);
+
+        // SV3 process delivery: pure on/off. Legacy Y3 is SET on SES-On and
+        // RST on SES-Off / stage exit. Here the state machine supplies the
+        // delivery permit; SV3 opens only while flowing and permitted.
+        bSV3_DeliveryValve := (eState = E_SystemState.SteamFlowing) AND bDeliveryPermit;
+
+        // SV1 drain: closed in these states (drain handled via maintenance)
+        bSV1_DrainValve := FALSE;
+END_CASE
+
+//============================================================================
+// 2. HARD INTERLOCKS  (apply AFTER resolution; no state can bypass)
+//============================================================================
+// TODO: replace with the real interlock matrix from the P&ID / legacy
+//       safety rungs. These are structural placeholders.
+IF bSV3_DeliveryValve THEN
+    bSV1_DrainValve := FALSE;         // no draining during delivery
+END_IF
+IF bSV1_DrainValve THEN
+    bSV2_SpaValve := FALSE;          // isolate main while draining
+END_IF
+
+//============================================================================
+// 3. RESOLVE HEATERS
+//============================================================================
+// Heaters run ONLY in running states. In SesOff/Fault/Maint heaters are off
+IF bRunningState THEN
+    // TODO: gate each heater on its own temperature loop / enable from
+    //       the state machine. Placeholder: on while running.
+    bH1Upstream := TRUE;
+    bH2Purifier := TRUE;
+    bFmHeater   := TRUE;
+    bExtHeater  := bExtHeaterEnable;   // external heater follows HMI enable
+ELSE
+    bH1Upstream := FALSE;
+    bH2Purifier := FALSE;
+    bFmHeater   := FALSE;
+    bExtHeater  := FALSE;
+END_IF
+
+//============================================================================
+// 4. SINGLE WRITE POINT -> physical coils
+//============================================================================
+GVL_IO.boSV1_DrainValve         := bSV1_DrainValve;
+GVL_IO.boSV2_SpaValve           := bSV2_SpaValve;
+GVL_IO.boSV3_DeliveryValve      := bSV3_DeliveryValve;
+GVL_IO.boSV4_WaterInletValve	:= bSV4_WaterInletValve;
+
+GVL_IO.boH1_UpstreamHeater 		:= bH1Upstream;
+GVL_IO.boH2_SpaHeater 			:= bH2Purifier;
+GVL_IO.boH3_FlowmeterHeater 	:= bFmHeater;
+GVL_IO.boH4_ExternalHeater		:= bExtHeater;
+
+//============================================================================
+// 5. FEEDBACK for HMI
+//============================================================================
+arValveState[1] := bSV1_DrainValve;
+arValveState[2] := bSV2_SpaValve;
+arValveState[3] := bSV3_DeliveryValve;
+arValveState[4] := bSV4_WaterInletValve;
+bHeatersOn := bH1Upstream OR bH2Purifier OR bFmHeater OR bExtHeater;
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

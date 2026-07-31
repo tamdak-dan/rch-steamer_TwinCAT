@@ -1,22 +1,54 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
-  <POU Name="FB_StateMachine" Id="{c229f4cc-9a87-4d59-a1ae-d17bbe58764f}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_StateMachine
+  <POU Name="FB_StateMachine_1" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000012}" SpecialFunc="None">
+    <Declaration><![CDATA[//=============================================================================
+// FB_StateMachine
+//-----------------------------------------------------------------------------
+// Core sequencer, ported from the DirectSoft6 ISG/SG stage flow (S0..S13).
+// One CASE statement = one place state can ever change.
+//
+// External events arrive through the Request*() methods (called by MAIN from
+// FB_Hmi command pulses). The methods only SET request flags; the actual
+// transition happens inside the CASE so ordering is deterministic and a
+// request can be validated/refused in one spot.
+//
+// Outputs are "enable" flags consumed by the control FBs and FB_OutputHandler.
+// This FB never writes I/O directly.
+//
+// Transition map (verified against the JMP instructions in the source):
+//   ControllerInit -> SesOff
+//   SesOff -> CheckIfHot            (start requested, no blocking fault)
+//   CheckIfHot -> SteamFlowing      (C14: SPA warm AND flow > 5%  -> hot restart)
+//              -> InitFillWater      (cold, drain bit C30 clear)
+//   InitFillWater -> InitPurgeVessel (fill complete)
+//                 -> SesOff          (abort)
+//   InitPurgeVessel -> InitSetDiffPressure (purge complete)
+//                   -> SesOff / Fault
+//   InitSetDiffPressure -> InitMain  (dP established within T13)
+//                       -> Fault      (downstream start-high / timeout)
+//   InitMain -> SteamFlowing          (init complete)
+//            -> SesOff                 (abort)
+//   SteamFlowing -> SesOff             (stop requested)
+//   Maintenance  -> SesOff             (exit)
+//   Fault -> ControllerInit            (operator reset ONLY)
+//   (any startup/run state) -> Maintenance  (maint requested from SesOff only)
+//=============================================================================
+FUNCTION_BLOCK FB_StateMachine_1
 VAR_INPUT
-    stProcessValues   	: ST_ProcessValues;
-    stFaults    		: ST_Faults;
-    stHmiSetpoints 		: ST_HmiSetpoints;
+    stProcess   : ST_ProcessValues;
+    stFaults    : ST_Faults;
+    stSetpoints : ST_HmiSetpoints;
 END_VAR
 VAR_OUTPUT
-	// system state
-    eState           : E_SystemState := E_SystemState.InitController;
+    eState           : E_SystemState := E_SystemState.ControllerInit;
 
     // enable flags for downstream FBs
     bControlEnable   : BOOL;   // PID pressure/temp loops may run
     bWaterFillEnable : BOOL;   // water fill sequence active
     bPurgeEnable     : BOOL;   // vessel purge sequence active
     bReady           : BOOL;   // green Ready: in SteamFlowing, in-band, no faults
-    bInStartup       : BOOL;   // TRUE for any Init* state
+
+    bInStartup       : BOOL;   // TRUE for any Init* state (HMI "starting..." hint)
 END_VAR
 VAR
     // --- request flags set by methods, cleared when serviced ---
@@ -32,36 +64,27 @@ VAR
     bEntry           : BOOL;   // TRUE on the first cycle of the current state
 
     // --- per-state timers (replaces legacy T11 warmup, T13 dP, etc.) ---
-    tonWarmup        : TON;    	// TC3 warmup, legacy 120 s (V1532)
-    tonDiffPress     : TON;    	// dP settle, legacy 15 min baseline (see rung ~498)
+    tonWarmup        : TON;    // TC3 warmup, legacy 120 s (V1532)
+    tonDiffPress     : TON;    // dP settle, legacy 15 min baseline (see rung ~498)
     tonFillTimeout   : TON;
     tonPurgeTimeout  : TON;
 
     // --- thresholds (seed from GVL_Params at init; defaults from source) ---
-    tWarmupTime      	: TIME := T#120S;   // legacy "Begin a 120 sec warm up timer for TC3"
-    tDiffPressTime   	: TIME := T#15M;    // legacy baseline 15 min
-    tFillTimeout     	: TIME := T#10M;
-    tPurgeTimeout    	: TIME := T#10M;
-    
-END_VAR
-]]></Declaration>
+    tWarmupTime      : TIME := T#120S;   // legacy "Begin a 120 sec warm up timer for TC3"
+    tDiffPressTime   : TIME := T#15M;    // legacy baseline 15 min
+    tFillTimeout     : TIME := T#10M;
+    tPurgeTimeout    : TIME := T#10M;
+    rHotRestartFlowPct : REAL := 5.0;    // legacy "steam flow is over 5%"
+END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[//=========================== entry-edge detection ============================
+      <ST><![CDATA[//=========================== entry-edge detection =============================
 bEntry := (eState <> eStatePrev);
 eStatePrev := eState;
 
-//=========================== reset on entry detection ========================
-IF bEntry THEN	
-	// reset timers
-	tonWarmup(IN := FALSE);
-	tonDiffPress(IN := FALSE);
-	tonFillTimeout(IN := FALSE);
-	tonFillStopDelay(IN := FALSE); 
-	tonPurgeTimeout(IN := FALSE);
-END_IF
-
 //=========================== global fault override ===========================
 // A latching fault forces Fault from ANY state except when already resetting.
+// This mirrors the ~25 scattered "JMP S10" checks in the source, now funneled
+// through one request from FB_FaultMonitor (see MAIN).
 IF bReqFault AND (eState <> E_SystemState.Fault) THEN
     eState := E_SystemState.Fault;
     bEntry := TRUE;
@@ -80,8 +103,11 @@ bInStartup       := FALSE;
 CASE eState OF
 
     //--------------------------------------------------------------------
-    E_SystemState.InitController:   // S0 : one-shot init, then idle
+    E_SystemState.ControllerInit:   // S0 : one-shot init, then idle
     //--------------------------------------------------------------------
+        // Most legacy S0 param-loads are now variable initializers / PERSISTENT.
+        // Nothing to hold here; drop straight to idle once entry housekeeping
+        // is done.
         IF bEntry THEN
             // TODO: seed thresholds from GVL_Params here if they differ per unit
             ;
@@ -89,8 +115,11 @@ CASE eState OF
         eState := E_SystemState.SesOff;
 
     //--------------------------------------------------------------------
-    E_SystemState.SesOff:           // S70 : SES off, idle / standby
+    E_SystemState.SesOff:           // S6 : idle / standby
     //--------------------------------------------------------------------
+        // Legacy: "Reset warmup timer while in SES OFF" (rung ~1978)
+        tonWarmup(IN := FALSE);
+
         IF bReqMaint THEN
             eState := E_SystemState.Maintenance;
         ELSIF bReqStart AND NOT stFaults.bHmiCommLoss THEN
@@ -98,38 +127,35 @@ CASE eState OF
         END_IF
 
     //--------------------------------------------------------------------
-    E_SystemState.CheckIfHot:       // S10 : hot-restart shortcut vs cold start
+    E_SystemState.CheckIfHot:       // S101 : hot-restart shortcut vs cold start
     //--------------------------------------------------------------------
-        // SPA warm (TC1 within band) AND steam flow already > x%*RatedFlow -> jump to SteamFlowing.
-        // Otherwise cold start -> fill water
+        // Legacy C14 (rung 84): SPA warm (TC1 within band V1505..V1507)
+        // AND steam flow already > 5% -> jump straight to SteamFlowing.
+        // Otherwise cold start -> fill water (drain bit C30 clear).
         bInStartup := TRUE;
-        IF _IsSpaWarm() AND (_FlowPercent() > GVL_SysParameters.rHotRestartFlowPct) THEN
-            eState := E_SystemState.SteamFlowing;
+        IF _IsSpaWarm() AND (_FlowPercent() > rHotRestartFlowPct) THEN
+            eState := E_SystemState.SteamFlowing;   // legacy: SET Y2, JMP S4
         ELSE
-            eState := E_SystemState.FillWater;
+            eState := E_SystemState.InitFillWater;  // legacy: JMP S111
         END_IF
 
     //--------------------------------------------------------------------
-    E_SystemState.FillWater:    // S20 : fill water
+    E_SystemState.InitFillWater:    // S111 : fill water
     //--------------------------------------------------------------------
-        bInStartup        := TRUE;
-        bWaterFillEnable  := TRUE;
+        bInStartup       := TRUE;
+        bWaterFillEnable := TRUE;
         tonFillTimeout(IN := TRUE, PT := tFillTimeout);
 
         IF bReqStop THEN
             eState := E_SystemState.SesOff;
         ELSIF stFaults.bWaterFill OR tonFillTimeout.Q THEN
-            bReqFault := TRUE;  
-        ELSIF stProcessValues.bWaterFull THEN
-			IF GVL_SysParameters.bUsr_PurgeOnStartup THEN 
-				eState := E_SystemState.PurgeVessel;
-			ELSE 
-				eState := E_SystemState.SetDiffPressure; 
-			END_IF
+            bReqFault := TRUE;   // serviced top-of-cycle next scan
+        ELSIF stProcess.bWaterFull THEN            // fill complete
+            eState := E_SystemState.InitPurgeVessel;
         END_IF
 
     //--------------------------------------------------------------------
-    E_SystemState.PurgeVessel:  // S11 : purge vessel
+    E_SystemState.InitPurgeVessel:  // S11 : purge vessel
     //--------------------------------------------------------------------
         bInStartup   := TRUE;
         bPurgeEnable := TRUE;
@@ -139,12 +165,12 @@ CASE eState OF
             eState := E_SystemState.SesOff;
         ELSIF stFaults.bVesselPurge OR tonPurgeTimeout.Q THEN
             bReqFault := TRUE;
-        ELSIF stProcessValues.bSpaFlushed THEN           // purge complete
-            eState := E_SystemState.SetDiffPressure;
+        ELSIF stProcess.bSpaFlushed THEN           // purge complete
+            eState := E_SystemState.InitSetDiffPressure;
         END_IF
 
     //--------------------------------------------------------------------
-    E_SystemState.SetDiffPressure: // S13 : establish differential pressure
+    E_SystemState.InitSetDiffPressure: // S13 : establish differential pressure
     //--------------------------------------------------------------------
         bInStartup     := TRUE;
         bControlEnable := TRUE;   // dP PID runs to bring differential up
@@ -159,7 +185,7 @@ CASE eState OF
         END_IF
 
     //--------------------------------------------------------------------
-    E_SystemState.SteamPrecheck:         // S1 : final checks before flow
+    E_SystemState.InitMain:         // S1 : final checks before flow
     //--------------------------------------------------------------------
         bInStartup     := TRUE;
         bControlEnable := TRUE;
@@ -214,59 +240,63 @@ bReqExitMaint  := FALSE;
 bReqFaultReset := FALSE;
 ]]></ST>
     </Implementation>
-    <Method Name="_FlowInBand" Id="{7b34b003-618c-4463-9a96-27a32ac34e28}">
+    <Method Name="_FlowInBand" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000205}">
       <Declaration><![CDATA[METHOD PRIVATE _FlowInBand : BOOL]]></Declaration>
       <Implementation>
-        <ST><![CDATA[// check if measured flow is within tolerance of setpoint for hot start
-_FlowInBand := ABS(stProcessValues.rFlowActual - stHmiSetpoints.rSetFlow)
-               <= (GVL_SysParameters.rFlowDeadbandPct * stHmiSetpoints.rSetFlow);]]></ST>
+        <ST><![CDATA[// within +/-10% of setpoint (TODO: tune / pull tolerance from params)
+_FlowInBand := ABS(stProcess.rFlowActual - stSetpoints.rSetFlow)
+               <= (0.10 * stSetpoints.rSetFlow);]]></ST>
       </Implementation>
     </Method>
-    <Method Name="_FlowPercent" Id="{51f9c619-5222-4c48-a32b-707ad7ce6221}">
+    <Method Name="_FlowPercent" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000202}">
       <Declaration><![CDATA[METHOD PRIVATE _FlowPercent : REAL]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF stProcessValues.rFlowRated > 0.0 THEN
-    _FlowPercent := 100.0 * stProcessValues.rFlowActual / stProcessValues.rFlowRated;
+        <ST><![CDATA[IF stProcess.rFlowRated > 0.0 THEN
+    _FlowPercent := 100.0 * stProcess.rFlowActual / stProcess.rFlowRated;
 ELSE
     _FlowPercent := 0.0;
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="_IsDiffPressEstablished" Id="{b1f7aed4-a886-4a7b-bad9-cc81f3fbcb42}">
+    <Method Name="_IsDiffPressEstablished" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000203}">
       <Declaration><![CDATA[// TODO: real dP target from setpoints/params (legacy "Purge dP"/INI_SP).
 METHOD PRIVATE _IsDiffPressEstablished : BOOL]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_IsDiffPressEstablished := (stProcessValues.rDiffPressure >= stHmiSetpoints.rSetDsPressure);]]></ST>
+        <ST><![CDATA[_IsDiffPressEstablished := (stProcess.rDiffPressure >= stSetpoints.rSetDsPressure);]]></ST>
       </Implementation>
     </Method>
-    <Method Name="_IsInitComplete" Id="{ee780782-4c40-45b4-8daf-135589832c68}">
+    <Method Name="_IsInitComplete" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000204}">
       <Declaration><![CDATA[// TODO: port the final S1 readiness checks (temps settled, dP stable).
 METHOD PRIVATE _IsInitComplete : BOOL]]></Declaration>
       <Implementation>
         <ST><![CDATA[_IsInitComplete := _TempsInBand() AND _IsDiffPressEstablished();]]></ST>
       </Implementation>
     </Method>
-    <Method Name="_IsSpaWarm" Id="{79115b31-84d2-410e-8a34-0a55ab06bbbe}">
-      <Declaration><![CDATA[METHOD PRIVATE _IsSpaWarm : BOOL]]></Declaration>
+    <Method Name="_IsSpaWarm" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000201}">
+      <Declaration><![CDATA[// Legacy C14 part 1: TC1 SPA within warm band (V1505..V1507).
+// TODO: replace band with real values from GVL_Params.
+METHOD PRIVATE _IsSpaWarm : BOOL
+VAR_INPUT
+END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_IsSpaWarm := (stProcessValues.rTc1Spa >= GVL_SysParameters.rSpaWarmMinimumTemp);  ]]></ST>
+        <ST><![CDATA[_IsSpaWarm := (stProcess.rTc1Spa >= 30.0);  // TODO: real warm-band low limit]]></ST>
       </Implementation>
     </Method>
-    <Method Name="_TempsInBand" Id="{d3fe4c13-f97f-4432-8bcd-b18afa8468b0}">
+    <Method Name="_TempsInBand" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000206}">
       <Declaration><![CDATA[// TODO: real temperature bands from params (Warmup Temp V1535, Max Temp V1522).
 METHOD PRIVATE _TempsInBand : BOOL]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_TempsInBand := (stProcessValues.rTc1Spa >= 30.0) AND (stProcessValues.rTc1Spa <= 130.0);]]></ST>
+        <ST><![CDATA[_TempsInBand := (stProcess.rTc1Spa >= 30.0) AND (stProcess.rTc1Spa <= 130.0);]]></ST>
       </Implementation>
     </Method>
-    <Method Name="RequestExitMaint" Id="{d6350887-01b9-4198-9246-356e4bc00618}">
+    <Method Name="RequestExitMaint" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000104}">
       <Declaration><![CDATA[METHOD RequestExitMaint : BOOL]]></Declaration>
       <Implementation>
         <ST><![CDATA[bReqExitMaint := TRUE;
 RequestExitMaint := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="RequestFault" Id="{a61af9d8-4978-47f2-84b4-896606f3e70c}">
+    <Method Name="RequestFault" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000105}">
       <Declaration><![CDATA[// Force Fault. Called by MAIN when FB_FaultMonitor latches a fault.
 METHOD RequestFault : BOOL]]></Declaration>
       <Implementation>
@@ -274,7 +304,7 @@ METHOD RequestFault : BOOL]]></Declaration>
 RequestFault := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="RequestFaultReset" Id="{87dbab1b-7fca-4407-aed1-430ea9e709b2}">
+    <Method Name="RequestFaultReset" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000106}">
       <Declaration><![CDATA[// Operator reset. Only leaves Fault when latching faults have cleared.
 METHOD RequestFaultReset : BOOL]]></Declaration>
       <Implementation>
@@ -282,7 +312,7 @@ METHOD RequestFaultReset : BOOL]]></Declaration>
 RequestFaultReset := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="RequestMaintenance" Id="{44772f76-bcc8-4a70-8395-cccc8d10bb8d}">
+    <Method Name="RequestMaintenance" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000103}">
       <Declaration><![CDATA[// Enter Maintenance. Honored only from SesOff.
 METHOD RequestMaintenance : BOOL]]></Declaration>
       <Implementation>
@@ -290,7 +320,7 @@ METHOD RequestMaintenance : BOOL]]></Declaration>
 RequestMaintenance := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="RequestStart" Id="{bac3a0e4-aadf-4d2f-b000-40664aac8f98}">
+    <Method Name="RequestStart" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000101}">
       <Declaration><![CDATA[// SES ON. Honored only from SesOff (checked in the CASE).
 METHOD RequestStart : BOOL]]></Declaration>
       <Implementation>
@@ -298,7 +328,7 @@ METHOD RequestStart : BOOL]]></Declaration>
 RequestStart := TRUE;]]></ST>
       </Implementation>
     </Method>
-    <Method Name="RequestStop" Id="{1d1b5f77-76a5-45dc-a6eb-c9f10c103138}">
+    <Method Name="RequestStop" Id="{a1b2c3d4-0012-4a5b-9c8d-e1f200000102}">
       <Declaration><![CDATA[// SES OFF / abort. Honored from any running or startup state.
 METHOD RequestStop : BOOL]]></Declaration>
       <Implementation>

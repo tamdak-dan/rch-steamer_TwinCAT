@@ -17,8 +17,41 @@ VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[GVL_io.bOutput_1 := HMI_bRun;
-HMI_nPT1 := TO_INT(GVL_IO.nTempSensor);]]></ST>
+      <ST><![CDATA[//========================= FB CALLS =====================================
+
+// FAULT CHECK
+fbFaultMonitor();
+
+//========================= HMI (publish + consume) =======================
+// Run BEFORE the state machine so command pulses are latched this cycle.
+// FB_Hmi publishes GVL_HMI.stStatus and clears consumed command bits.
+(* fbHmi(eState        := fbStateMachine.eState,
+      stProcess     := GVL_Process.stValues,
+      stFaults      := fbFaultMonitor.stFaults,
+      bReady        := fbStateMachine.bReady,
+      arPidOutput   := fbPressureControl.arOutputPct,
+      arValveActual := fbOutputs.arValveState,
+      stLimits      := stSetpointLimits); *)
+	  
+//========================= STATE MACHINE =================================
+// Consume the one-cycle HMI command pulses, then run the CASE.
+IF fbHmi.bCmdSesOn THEN fbStateMachine.RequestStart(); END_IF
+IF fbHmi.bCmdSesOff THEN fbStateMachine.RequestStop(); END_IF
+IF fbHmi.bCmdEnterMaint THEN fbStateMachine.RequestMaintenance(); END_IF
+IF fbHmi.bCmdExitMaint THEN fbStateMachine.RequestExitMaint(); END_IF
+IF fbHmi.bCmdFaultReset THEN
+    fbFaultMonitor.ResetAll();
+    fbStateMachine.RequestFaultReset();
+END_IF
+
+// Latch fault -> force state machine into Fault (only auto-clears via reset).
+IF fbFaultMonitor.bAnyLatchingFault THEN
+    fbStateMachine.RequestFault();
+END_IF
+
+fbStateMachine(stProcessValues   := GVL_Process.stValues,
+               stFaults    := fbFaultMonitor.stFaults,
+               stHmiSetpoints := fbHmi.stSetpoints);]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

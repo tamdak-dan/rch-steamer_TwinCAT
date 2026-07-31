@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <GVL Name="GVL_SysParameters" Id="{410e5bc5-dbe8-44c0-bfab-b5480c733766}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	
+	// SV2 pressure relief and closing delay
+	rUpstreamPressureReleived : REAL := 700;	// 700 Torr
+	tSv2CloseDelay 		: TIME := T#5S;
+	
+	// state machine -----------------------------
+	
+	// CheckIfHot state
+	rSpaWarmMinimumTemp : REAL := 30.0;			// 30 degC --> TODO: check if this value makes sense
+	rHotRestartFlowPct 	: REAL := 10.0;    	// current flow is over x% of rated flow
+	
+	// FillWater state
+	tFillStopDelay 		: TIME := T#5S;	
+
+// rFlowDeadbandPct	: REAL := 0.10; 		// 10%
+	
+
+	// FB_WaterFill
+	tDebounceTimer 		: TIME := T#1S;
+	tStartupFillTimeout	: TIME := T#15M;
+	tFillConfirmDelay	: TIME := T#5S;
+	tAutoFillTimeout	: TIME := T#1M;
+	tAutoFillDelay		: TIME := T#10s;
+	
+END_VAR
+
+// ------------------------- persisent vars -----------------------------------
+VAR_GLOBAL PERSISTENT
+	// user adjustable params
+	bUsr_PurgeOnStartup	: BOOL;
+
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

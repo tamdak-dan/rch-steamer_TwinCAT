@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="E_WaterFillMode" Id="{d0ac86ce-3a02-4faa-9d17-56b0dd6867d5}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
+TYPE E_WaterFillMode :
+(
+    Idle     		:= 0, 	
+    StartupFill		:= 10, 
+    RunningAutofill	:= 20
+    
+) INT;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

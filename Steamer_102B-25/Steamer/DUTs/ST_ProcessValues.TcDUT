@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.0">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
   <DUT Name="ST_ProcessValues" Id="{a1b2c3d4-0002-4a5b-9c8d-e1f200000002}">
     <Declaration><![CDATA[//=============================================================================
 // ST_ProcessValues
@@ -12,29 +12,30 @@
 {attribute 'pack_mode' := '1'}
 TYPE ST_ProcessValues :
 STRUCT
-    // --- Pressures [Torr] -------------------------------- (legacy V-mem)
-    rPt1Upstream    : REAL;    // PT-1 upstream pressure       (P1)
-    rPt2Downstream  : REAL;    // PT-2 downstream pressure     (P2)
-    rPt3AtmRef      : REAL;    // PT-3 atmospheric reference   (P3)
-    rDiffPressure   : REAL;    // PT-1 - PT-2 differential
+    // --- Pressures [Torr] -------------------------------- 
+    rPt1Upstream    : REAL;    	// PT-1 upstream pressure    
+    rPt2Downstream  : REAL;    	// PT-2 downstream pressure  
+    rPt3AtmRef      : REAL;    	// PT-3 atmospheric reference
+    rDiffPressure   : REAL;    	// PT-1 - PT-2 differential
 
     // --- Temperatures [degC] ------------------------------
-    rTc1Spa         : REAL;    // TC1 SPA temperature
-    rTc2FlowMeter   : REAL;    // TC2 flow meter temperature
-    rTc3External    : REAL;    // TC3 external heater temperature
-    rTc4Delivery    : REAL;    // TC4 delivery line temperature
+    rTc1Spa         : REAL;    	// TC1 SPA temperature
+    rTc2FlowMeter   : REAL;    	// TC2 flow meter temperature
+    rTc3External    : REAL;    	// TC3 external heater temperature
+    rTc4Delivery    : REAL;    	// TC4 delivery line temperature
 
     // --- Flow [SLM] ---------------------------------------
-    rFlowActual     : REAL;    // F3 calculated steam flow     (V1472 filtered)
-    rFlowSetpoint   : REAL;    // active flow setpoint         (V1550 SFR)
-    rFlowRated      : REAL;    // rated max flow               (V1552 RATED_FLOW)
+    rFlowActual     : REAL;    	// F3 calculated steam flow     
+    rFlowSetpoint   : REAL;    	// active flow setpoint         
+    rFlowRated      : REAL;    	// rated max flow               
 
     // --- Discrete process status --------------------------
-    bWaterFull      : BOOL;    // full water level             (B1601.10)
-    bWaterLow       : BOOL;    // low water level              (B1601.9)
-    bWaterEmpty     : BOOL;    // empty water level            (B1601.11)
-    bSpaFlushed     : BOOL;    // SPA flushed / purge complete
-    bExtHeaterOn    : BOOL;    // external heater enabled      (B7402.12)
+    bWaterHigh		: BOOL;		// water at high limit --> high limit switch on
+	bWaterFull      : BOOL;    	// full water level --> center limit switch on, high off
+    bWaterLow       : BOOL;    	// low water level --> low limit switch on, center/high off
+    bWaterEmpty     : BOOL;    	// empty water level --> low limit switch off
+    bSpaFlushed     : BOOL;    	// SPA flushed / purge complete
+    bExtHeaterOn    : BOOL;    	// external heater enabled      
 END_STRUCT
 END_TYPE
 ]]></Declaration>

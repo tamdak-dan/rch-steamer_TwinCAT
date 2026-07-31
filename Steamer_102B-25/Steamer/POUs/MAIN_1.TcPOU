@@ -1,0 +1,131 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="MAIN_1" Id="{a1b2c3d4-0010-4a5b-9c8d-e1f200000010}" SpecialFunc="None">
+    <Declaration><![CDATA[//=============================================================================
+// MAIN
+//-----------------------------------------------------------------------------
+// Thin orchestrator. Contains NO process logic of its own — it only wires
+// the function blocks together in a fixed, deterministic order every cycle:
+//
+//   1. READ    inputs  (raw I/O -> scaled process values)
+//   2. FAULTS  evaluate all fault conditions
+//   3. HMI     publish status / consume commands (needs faults + state)
+//   4. STATE   run the state machine (consumes HMI command pulses)
+//   5. CONTROL run PID loops (enabled/disabled by the state machine)
+//   6. WRITE   outputs (state machine + control + maintenance overrides)
+//
+// This ordering means a button press on the Pi takes effect the SAME cycle:
+// FB_Hmi latches the command before FB_StateMachine runs. Keep this order.
+//
+// Ported from DirectSoft6 program 600025.25L. The old S0..S13 stage flow
+// now lives in FB_StateMachine; the V3000/V3001 HMI message system is
+// replaced by GVL_HMI + FB_Hmi (pyads to the RPi4).
+//=============================================================================
+PROGRAM MAIN_1
+VAR
+    // ---- 1. I/O scaling --------------------------------------------------
+    fbInputs         : FB_InputScaling;    // raw %I -> ST_ProcessValues (eng. units)
+
+    // ---- 2. Faults -------------------------------------------------------
+    fbFaultMonitor   : FB_FaultMonitor;
+
+    // ---- 3. HMI interface ------------------------------------------------
+    fbHmi            : FB_Hmi;
+
+    // ---- 4. State machine ------------------------------------------------
+    fbStateMachine   : FB_StateMachine;
+
+    // ---- 5. Control loops ------------------------------------------------
+    fbFlowCalc       : FB_FlowCalc;        // orifice flow F1/F2/F3
+    fbPressureControl: FB_PressureControl; // PID1..PID6
+    fbWaterFill      : FB_WaterFill;
+    fbPurge          : FB_Purge;
+
+    // ---- 6. Output handling ----------------------------------------------
+    fbOutputs        : FB_OutputHandler;   // resolves auto vs maintenance overrides -> %Q
+
+    // ---- shared setpoint limits (defaults ok; override from GVL_Params) ---
+    stSetpointLimits : ST_SetpointLimits;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//========================= 1. READ INPUTS =====================================
+// Scale raw analog/digital I/O (GVL_IO) into engineering units.
+// Populates GVL_Process.stValues (Torr, degC, SLM).
+fbInputs(stOut := GVL_Process.stValues);
+
+// Flow calculation depends on scaled pressures/temps, so run it here as part
+// of "sensing" rather than "control".
+fbFlowCalc(stProcess := GVL_Process.stValues,
+           rFlowOut  => GVL_Process.stValues.rFlowActual);
+
+//========================= 2. EVALUATE FAULTS ================================
+// All the scattered legacy "JMP S10" checks collapse into this one FB.
+// It reads process values + limits and produces ST_Faults.
+fbFaultMonitor(stProcess   := GVL_Process.stValues,
+               eState      := fbStateMachine.eState,
+               bHmiCommLoss := fbHmi.bHmiCommLoss);
+
+//========================= 3. HMI (publish + consume) =======================
+// Run BEFORE the state machine so command pulses are latched this cycle.
+// FB_Hmi publishes GVL_HMI.stStatus and clears consumed command bits.
+fbHmi(eState        := fbStateMachine.eState,
+      stProcess     := GVL_Process.stValues,
+      stFaults      := fbFaultMonitor.stFaults,
+      bReady        := fbStateMachine.bReady,
+      arPidOutput   := fbPressureControl.arOutputPct,
+      arValveActual := fbOutputs.arValveState,
+      stLimits      := stSetpointLimits);
+
+//========================= 4. STATE MACHINE =================================
+// Consume the one-cycle HMI command pulses, then run the CASE.
+IF fbHmi.bCmdSesOn      THEN fbStateMachine.RequestStart();      END_IF
+IF fbHmi.bCmdSesOff     THEN fbStateMachine.RequestStop();       END_IF
+IF fbHmi.bCmdEnterMaint THEN fbStateMachine.RequestMaintenance(); END_IF
+IF fbHmi.bCmdExitMaint  THEN fbStateMachine.RequestExitMaint();  END_IF
+IF fbHmi.bCmdFaultReset THEN
+    fbFaultMonitor.ResetAll();
+    fbStateMachine.RequestFaultReset();
+END_IF
+
+// Latch fault -> force state machine into Fault (only auto-clears via reset).
+IF fbFaultMonitor.bAnyLatchingFault THEN
+    fbStateMachine.RequestFault();
+END_IF
+
+fbStateMachine(stProcess   := GVL_Process.stValues,
+               stFaults    := fbFaultMonitor.stFaults,
+               stSetpoints := fbHmi.stSetpoints);
+
+//========================= 5. CONTROL LOOPS =================================
+// PID loops run only when the state machine enables them. In Maintenance,
+// the enable flags follow the HMI control-loop override toggles.
+fbPressureControl(bEnable        := fbStateMachine.bControlEnable,
+                  bDpControlOff  := fbHmi.bDpControlOff,
+                  bTempControlOff := fbHmi.bTempControlOff,
+                  stProcess      := GVL_Process.stValues,
+                  stSetpoints    := fbHmi.stSetpoints);
+
+fbWaterFill(bEnable   := fbStateMachine.bWaterFillEnable,
+            stProcess := GVL_Process.stValues);
+
+fbPurge(bEnable   := fbStateMachine.bPurgeEnable,
+        stProcess := GVL_Process.stValues);
+
+//========================= 6. WRITE OUTPUTS =================================
+// FB_OutputHandler is the single writer to GVL_IO outputs. It picks between
+// automatic control and maintenance overrides based on state, so no other
+// POU ever touches %Q directly (prevents two-master output conflicts).
+fbOutputs(eState          := fbStateMachine.eState,
+          // automatic sources
+          arPidOutput     := fbPressureControl.arOutputPct,
+          bWaterFillValve := fbWaterFill.bFillValve,
+          bPurgeValve     := fbPurge.bPurgeValve,
+          bExtHeaterEnable := fbHmi.bExtHeaterEnable,
+          // maintenance overrides (already state-gated inside FB_Hmi)
+          arValveOverride := fbHmi.arValveOverride,
+          bLoopbackOn     := fbHmi.bLoopbackOn,
+          bDrainMode      := fbHmi.bDrainMode);
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

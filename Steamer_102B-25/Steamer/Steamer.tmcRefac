@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Refactors>
+  <Renames>
+    <RenamedSymbol>
+      <Type guid="c229f4cc-9a87-4d59-a1ae-d17bbe58764f">FB_StateMachine</Type>
+      <From>stProcess</From>
+      <To>stProcessValues</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="c229f4cc-9a87-4d59-a1ae-d17bbe58764f">FB_StateMachine</Type>
+      <From>stSetpoints</From>
+      <To>stHmiSetpoints</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="035bd223-4782-4b25-9fd3-97d3ad8a81a2">FB_OutputHandler</Type>
+      <From>bSv1Drain</From>
+      <To>bSV1_DrainValve</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="035bd223-4782-4b25-9fd3-97d3ad8a81a2">FB_OutputHandler</Type>
+      <From>bSv2Main</From>
+      <To>bSV2_SpaValve</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="035bd223-4782-4b25-9fd3-97d3ad8a81a2">FB_OutputHandler</Type>
+      <From>bSv3Process</From>
+      <To>bSV3_DeliveryValve</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="035bd223-4782-4b25-9fd3-97d3ad8a81a2">FB_OutputHandler</Type>
+      <From>bSv4Water</From>
+      <To>bSV4_WaterInletValve</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="a0c26368-373e-4fd3-95ee-778e79d1422c">FB_WaterFill</Type>
+      <From>tonAutofillFault</From>
+      <To>tonAutoFillFault</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="a0c26368-373e-4fd3-95ee-778e79d1422c">FB_WaterFill</Type>
+      <From>tonAutofillDwell</From>
+      <To>tonAutoFillDwell</To>
+    </RenamedSymbol>
+  </Renames>
+</Refactors>

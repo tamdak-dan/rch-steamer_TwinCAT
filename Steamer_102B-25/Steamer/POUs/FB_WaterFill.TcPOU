@@ -1,16 +1,160 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
   <POU Name="FB_WaterFill" Id="{a0c26368-373e-4fd3-95ee-778e79d1422c}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_WaterFill
+    <Declaration><![CDATA[//=============================================================================
+// FB_WaterFill
+//-----------------------------------------------------------------------------
+//
+// TWO modes selected by eMode:
+//
+//   StartupFill
+//     - Open SV4 while the filtered CENTER switch (LS1) is dry.
+//     - The instant LS1 is covered, CLOSE SV4 and run a fixed confirm dwell
+//       (legacy T24 = 5 s). Valve does NOT keep filling during the dwell.
+//     - When the dwell completes -> bFillComplete.
+//     - If the fill-fault timer (legacy T10, preset tFillFaultTime) expires
+//       while LS1 is still dry -> bWaterFillFault (legacy B1600.15 -> S10).
+//
+//   RunningAutofill
+//     - A self-contained PID holds level at the center switch (setpoint 25).
+//       Its output % is time-proportioned onto the on/off solenoid over
+//       tFillCycle (legacy T20 / V1516) -> metered trickle to replace boil-off.
+//     - Lower-duty floor: below rFillMinDuty (legacy 10%) the valve
+//       stays shut - no meaningless sub-threshold pulsing.
+//     - If the PID sits pinned at full output longer than tWaterFillCheck -> bWaterRegFault
+//
+// Switch filtering: raw center/empty switches debounced with
+// symmetric on/off delays (tLevelFilter).
+//
+// Drives NO coil directly. Outputs qFillValve; FB_OutputHandler (single
+// writer) maps it to GVL_IO
+//
+//=============================================================================
+FUNCTION_BLOCK FB_WaterFill
 VAR_INPUT
+    eMode            : E_WaterFillMode;   // StartupFill | RunningAutofill | Idle
+    bCenterSwitch    : BOOL;              // RAW LS1 center (X2). Filtered internally.
+    bEmptySwitch     : BOOL;              // RAW LS3 empty  (X4). Filtered internally.
+    bAutofillInhibit : BOOL;              // legacy X13 autofill-off signal
 END_VAR
 VAR_OUTPUT
+    qFillValve       : BOOL;              // -> FB_OutputHandler -> SV4
+    bFillComplete    : BOOL;              // startup fill done (LS1 covered + dwell)
+    bWaterFillFault  : BOOL;              // startup fill timeout (legacy B1600.15)
+    bCenterFiltered  : BOOL;              // exposed filtered LS1 (HMI / diagnostics)
+    bEmptyFiltered   : BOOL;              // exposed filtered LS3
 END_VAR
 VAR
-END_VAR
-]]></Declaration>
+    // ---- switch debounce (symmetric on/off = tLevelFilter) ----
+    tonCenterOn      : TON;
+    tonCenterOff     : TON;
+    tonEmptyOn       : TON;
+    tonEmptyOff      : TON;
+
+    // ---- startup fill (K8) -------------------------------------------------
+    tonFillFault     : TON; // 
+    tonFillDwell     : TON; // fixed confirm (tFillConfirm = 5 s)
+
+    // ---- running autofill (K7) ---------------------------------------------
+	tonAutoFillFault : TON; // alarm for detecting overfill during auto
+    tonAutoFillDwell : TON;	// legacy T63, preset tWaterFillCheck (V1555)
+	bAutoFillActive	 : BOOL;
+
+    ePrevMode        : E_WaterFillMode;
+    bModeEntry       : BOOL;
+END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[// mode-entry edge: reset per-mode timers/faults when the mode changes so a
+// second entry never sees stale .Q or accumulated time.
+bModeEntry := (eMode <> ePrevMode);
+ePrevMode  := eMode;
+
+//============================================================================
+// 1. SWITCH DEBOUNCE  (symmetric on/off delay = tLevelFilter)
+//============================================================================
+tonCenterOn (IN := bCenterSwitch,     PT := GVL_SysParameters.tDebounceTimer);
+tonCenterOff(IN := NOT bCenterSwitch, PT := GVL_SysParameters.tDebounceTimer);
+IF tonCenterOn.Q THEN
+    bCenterFiltered := TRUE;
+ELSIF tonCenterOff.Q THEN
+    bCenterFiltered := FALSE;
+END_IF
+
+tonEmptyOn (IN := bEmptySwitch,     PT := GVL_SysParameters.tDebounceTimer);
+tonEmptyOff(IN := NOT bEmptySwitch, PT := GVL_SysParameters.tDebounceTimer);
+IF tonEmptyOn.Q THEN
+    bEmptyFiltered := TRUE;
+ELSIF tonEmptyOff.Q THEN
+    bEmptyFiltered := FALSE;
+END_IF
+
+//============================================================================
+// 2. MODE LOGIC
+//============================================================================
+CASE eMode OF
+
+    //-- STARTUP FILL ------------------------------------------
+    E_WaterFillMode.StartupFill:
+        IF bModeEntry THEN
+            bFillComplete   := FALSE;
+            bWaterFillFault := FALSE;
+            tonFillDwell(IN := FALSE);
+            tonFillFault(IN := FALSE);
+        END_IF
+
+        IF NOT bCenterFiltered THEN
+            // --- still filling: valve open, fault timer running ---
+            qFillValve := TRUE;
+            tonFillFault(IN := TRUE, PT := GVL_SysParameters.tStartupFillTimeout);
+            tonFillDwell(IN := FALSE);                 // not at level; hold dwell reset
+            IF tonFillFault.Q THEN
+                bWaterFillFault := TRUE;
+            END_IF
+        ELSE
+            // --- LS1 covered: CLOSE valve immediately, run confirm dwell ---
+            // (legacy rung 502: RST Y4 on the same rung TMR T24 starts)
+            qFillValve := FALSE;
+            tonFillFault(IN := FALSE);
+            tonFillDwell(IN := TRUE, PT := GVL_SysParameters.tFillConfirmDelay);
+            IF tonFillDwell.Q THEN
+                bFillComplete := TRUE;
+            END_IF
+        END_IF
+
+    //-- RUNNING AUTOFILL --------------------------------------
+    E_WaterFillMode.RunningAutofill:
+        IF bModeEntry THEN
+            tonAutoFillFault(IN := FALSE);
+			tonAutoFillDwell(IN := FALSE);
+        END_IF
+
+        IF bAutofillInhibit THEN
+            // autofill off -> valve closed, timers reset
+            qFillValve := FALSE;    
+		ELSE
+			IF NOT bCenterFiltered THEN
+				qFillValve := TRUE;
+				tonAutoFillFault(IN := TRUE, PT := GVL_SysParameters.tAutoFillTimeout);
+				IF tonAutoFillFault.Q THEN
+					bWaterFillFault := TRUE;
+				END_IF
+				tonAutoFillDwell(IN := FALSE);
+			ELSE
+				tonAutoFillDwell(IN := TRUE, PT := GVL_SysParameters.tAutoFillDelay);
+				IF tonAutoFillDwell.Q THEN
+					qFillValve := FALSE;
+				END_IF
+				tonAutoFillFault(IN := FALSE);
+			END_IF
+        END_IF
+
+    //-- IDLE --------------------------------------------------------------
+    ELSE
+        qFillValve := FALSE;
+        tonFillFault(IN := FALSE);
+        tonFillDwell(IN := FALSE);
+END_CASE
+]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>
