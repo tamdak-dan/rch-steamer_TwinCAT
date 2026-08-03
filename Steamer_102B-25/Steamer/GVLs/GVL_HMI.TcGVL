@@ -22,10 +22,14 @@
 //=============================================================================
 {attribute 'qualified_only'}
 VAR_GLOBAL
-    stStatus          : ST_HmiStatus;      // PLC -> Pi
-    stCommand         : ST_HmiCommand;     // Pi -> PLC (FB_Hmi consumes+clears pulses)
-    stSetpointRequest : ST_HmiSetpoints;   // Pi -> PLC (applied on bApplySetpoints)
+    stHmiStatus         : ST_HmiStatus;      // PLC -> Pi
+    stHmiCommand        : ST_HmiCommand;     // Pi -> PLC (FB_Hmi consumes+clears pulses)
 END_VAR
+
+VAR_GLOBAL PERSISTENT
+	stHmiSetpoints 		: ST_HmiSetpoints;   // Pi -> PLC (applied on bApplySetpoints)
+END_VAR
+
 VAR_GLOBAL CONSTANT
     // Pi poll rate is expected >= 1 Hz; comm loss declared after this timeout
     T_HMI_HEARTBEAT_TIMEOUT : TIME := T#5S;

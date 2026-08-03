@@ -2,7 +2,7 @@
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
   <POU Name="FB_WaterFill" Id="{a0c26368-373e-4fd3-95ee-778e79d1422c}" SpecialFunc="None">
     <Declaration><![CDATA[//=============================================================================
-// FB_WaterFill
+// FB_WaterFill | VERIFIED 7.30.26 DA
 //-----------------------------------------------------------------------------
 //
 // TWO modes selected by eMode:
@@ -35,7 +35,7 @@ VAR_INPUT
     eMode            : E_WaterFillMode;   // StartupFill | RunningAutofill | Idle
     bCenterSwitch    : BOOL;              // RAW LS1 center (X2). Filtered internally.
     bEmptySwitch     : BOOL;              // RAW LS3 empty  (X4). Filtered internally.
-    bAutofillInhibit : BOOL;              // legacy X13 autofill-off signal
+    bAutofillEnable  : BOOL;              // legacy X13 autofill-off signal
 END_VAR
 VAR_OUTPUT
     qFillValve       : BOOL;              // -> FB_OutputHandler -> SV4
@@ -128,7 +128,7 @@ CASE eMode OF
 			tonAutoFillDwell(IN := FALSE);
         END_IF
 
-        IF bAutofillInhibit THEN
+        IF NOT bAutofillEnable THEN
             // autofill off -> valve closed, timers reset
             qFillValve := FALSE;    
 		ELSE

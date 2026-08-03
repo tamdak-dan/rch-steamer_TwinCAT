@@ -1,16 +1,112 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
   <POU Name="FB_Purge" Id="{4b1888ad-81a3-443e-843b-d656ed8d9276}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_Purge
+    <Declaration><![CDATA[//=============================================================================
+// FB_Purge | VERIFIED 8.2.26 DA
+//-----------------------------------------------------------------------------
+//
+// MECHANISM - it is a repeating DRAIN / EQUILIBRATE cycle, not a one-shot:
+//   * A pressure band is built around the target setpoint:
+//       upper = TSP + band 
+//       lower = TSP - band 
+//   * Purge only proceeds while upstream pressure is inside that band.
+//   * Cycle, gated by "OK to purge" latch:
+//       1. Open drain valve SV1 for tDrainOpen 
+//       2. Close SV1, wait tEquilibrate to let water settle and for the boiler
+//			pressuer loop to raise the upstream pressure to within the range
+//       3. If the EMPTY switch (LS3) now reads empty -> purge complete.
+//          Otherwise, if still in band, re-open SV1 and repeat.
+//   * Overall watchdog: if the cycle runs longer than tPurgeTimeout -> bPurgeFault
+//   * After complete: water fill is allowed and the state machine advances
+//     to SetDiffPressure
+//
+// Reports intent only:
+//   qDrainValve -> FB_OutputHandler -> GVL_IO.qxSv1Drain (single writer).
+//   bPurgeComplete -> FB_StateMachine (S11 -> S13 transition).
+//   bPurgeTimeout  -> FB_FaultMonitor (latches the fault, like every other).
+//=============================================================================
+FUNCTION_BLOCK FB_Purge
 VAR_INPUT
-END_VAR
-VAR_OUTPUT
+    bEnable         		: BOOL;    // TRUE while state = PurgeVessel
+    rUpstreamPress  		: REAL;    // upstream pressure [Torr]
+    bEmptyFiltered  		: BOOL;    // filtered LS3 empty switch
+END_VAR             		
+VAR_OUTPUT          		
+    qDrainValve     		: BOOL;    // -> FB_OutputHandler -> SV1 drain
+    bPurgeComplete  		: BOOL;    // -> state machine
+    bPurgeTimeout   		: BOOL;    // -> FaultMonitor Momentary report
+    bInPressureBand 		: BOOL;    // diagnostic: pressure within purge band
 END_VAR
 VAR
-END_VAR
-]]></Declaration>
+    bOkToPurge      		: BOOL;    // "OK to purge" drain-phase latch
+    rPressureBandUpper      : REAL;    // 
+    rPressureBandLower      : REAL;    // 
+
+    tonDrainOpen    		: TON;     // valve-open dwell
+    tonEquilibrate  		: TON;     // valve-closed settle
+    tonPurgeTimeout 		: TON;     // overall watchdog
+END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[// Reset everything when not purging so each S11 entry starts clean.
+IF NOT bEnable THEN
+    qDrainValve     := FALSE;
+    bOkToPurge      := FALSE;
+    bPurgeComplete  := FALSE;
+    bPurgeTimeout   := FALSE;
+    tonDrainOpen(IN := FALSE);
+    tonEquilibrate(IN := FALSE);
+    tonPurgeTimeout(IN := FALSE);
+    RETURN;
+END_IF
+
+//--- pressure band around target setpoint ------------------------------------
+rPressureBandUpper := GVL_SysParameters.rPurgeTargetPressure + GVL_SysParameters.rPurgeBand;
+rPressureBandLower := GVL_SysParameters.rPurgeTargetPressure - GVL_SysParameters.rPurgeBand;
+bInPressureBand := (rUpstreamPress > rPressureBandLower) AND (rUpstreamPress < rPressureBandUpper);
+
+//--- start the drain phase ---------------------------------------------------
+// Enter draining when in band and not already draining / not complete.
+IF (NOT bOkToPurge) AND bInPressureBand AND (NOT bPurgeComplete) THEN
+    bOkToPurge  := TRUE;
+    qDrainValve := TRUE;            // begin with the valve open
+END_IF
+
+IF bOkToPurge THEN
+    //--- 1. drain-open dwell -------------------------------------------------
+    // runs while the drain valve is open; on expiry, close it.
+    tonDrainOpen(IN := qDrainValve, PT := GVL_SysParameters.tDrainOpen);
+    IF tonDrainOpen.Q THEN
+        qDrainValve := FALSE;
+    END_IF
+
+    //--- 2. equilibrate dwell ------------------------------------------------
+    // runs while the drain valve is closed, letting water settle.
+    tonEquilibrate(IN := (bOkToPurge AND NOT qDrainValve),
+                   PT := GVL_SysParameters.tEquilibrate);
+
+    //--- 3. decide: complete, or drain again ---------------------------------
+    IF tonEquilibrate.Q THEN
+        IF bEmptyFiltered THEN
+            // settled AND empty -> purge complete
+            bOkToPurge     := FALSE;
+            bPurgeComplete := TRUE;
+        ELSIF bInPressureBand THEN
+            // settled but not empty, still in band -> another drain pulse
+            qDrainValve := TRUE;
+            tonDrainOpen(IN := FALSE);      // re-arm the open dwell
+            tonEquilibrate(IN := FALSE);    // re-arm the settle dwell
+        END_IF
+    END_IF
+
+    //--- overall purge watchdog ----------------------------------------------
+    // Runs the whole time we are in the drain cycle; expiry -> fault report.
+    tonPurgeTimeout(IN := bOkToPurge, PT := GVL_SysParameters.tPurgeTimeout);
+    bPurgeTimeout := tonPurgeTimeout.Q;
+ELSE
+    tonPurgeTimeout(IN := FALSE);
+    bPurgeTimeout := FALSE;
+END_IF
+]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

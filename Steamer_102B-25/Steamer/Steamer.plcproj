@@ -18,28 +18,28 @@
     <LibraryReferences>{8715065c-181f-4b14-8369-7788f0fdeffb}</LibraryReferences>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="DUTs\E_HmiMessage.TcDUT">
+    <Compile Include="DUTs\Enumerations\E_HmiMessage.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DUTs\E_SystemState.TcDUT">
+    <Compile Include="DUTs\Enumerations\E_SystemState.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DUTs\E_WaterFillMode.TcDUT">
+    <Compile Include="DUTs\Enumerations\E_WaterFillMode.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DUTs\ST_Faults.TcDUT">
+    <Compile Include="DUTs\Structures\ST_Faults.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DUTs\ST_HmiCommand.TcDUT">
+    <Compile Include="DUTs\Structures\ST_HmiCommand.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DUTs\ST_HmiSetpoints.TcDUT">
+    <Compile Include="DUTs\Structures\ST_HmiSetpoints.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DUTs\ST_HmiStatus.TcDUT">
+    <Compile Include="DUTs\Structures\ST_HmiStatus.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DUTs\ST_ProcessValues.TcDUT">
+    <Compile Include="DUTs\Structures\ST_ProcessValues.TcDUT">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="GVLs\GVL_HMI.TcGVL">
@@ -65,10 +65,6 @@
     <Compile Include="POUs\FB_Hmi.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\FB_Hmi_1.TcPOU">
-      <SubType>Code</SubType>
-      <ExcludeFromBuild>true</ExcludeFromBuild>
-    </Compile>
     <Compile Include="POUs\FB_OutputHandler.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -77,6 +73,7 @@
     </Compile>
     <Compile Include="POUs\FB_Purge.TcPOU">
       <SubType>Code</SubType>
+      <ExcludeFromBuild>false</ExcludeFromBuild>
     </Compile>
     <Compile Include="POUs\FB_StateMachine.TcPOU">
       <SubType>Code</SubType>
@@ -88,10 +85,6 @@
     <Compile Include="POUs\FB_WaterFill.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\FB_WaterFill_1.TcPOU">
-      <SubType>Code</SubType>
-      <ExcludeFromBuild>true</ExcludeFromBuild>
-    </Compile>
     <Compile Include="POUs\MAIN.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -102,6 +95,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="DUTs" />
+    <Folder Include="DUTs\Enumerations" />
+    <Folder Include="DUTs\Structures" />
     <Folder Include="GVLs" />
     <Folder Include="VISUs" />
     <Folder Include="POUs" />

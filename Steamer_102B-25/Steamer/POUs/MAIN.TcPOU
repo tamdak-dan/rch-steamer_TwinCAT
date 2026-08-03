@@ -5,8 +5,9 @@
 VAR
 	// HMI Variables
 	HMI_bRun 	: BOOL;
-	HMI_nPT1	: INT;	
-
+	HMI_nPT1	: INT;
+	
+	// function blocks
 	fbFaultMonitor 		: FB_FaultMonitor;
 	fbFlowCalcs 		: FB_FlowCalcs;
 	fbHmi 				: FB_Hmi;
@@ -14,6 +15,17 @@ VAR
 	fbPurge 			: FB_Purge;
 	fbStateMachine 		: FB_StateMachine;
 	fbWaterFill 		: FB_WaterFill;
+	fbOutputHandler		: FB_OutputHandler;
+	GVL_Process: INT;
+	
+	// fbWaterFill
+	reqFillVavle				: BOOL;
+	bLS1_WaterCenter_Filtered	: BOOL;
+	bLS3_WaterEmpty_Filtered	: BOOL;
+	
+	// fbPurge
+	reqDrainValve				: BOOL;
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -49,9 +61,48 @@ IF fbFaultMonitor.bAnyLatchingFault THEN
     fbStateMachine.RequestFault();
 END_IF
 
-fbStateMachine(stProcessValues   := GVL_Process.stValues,
-               stFaults    := fbFaultMonitor.stFaults,
-               stHmiSetpoints := fbHmi.stSetpoints);]]></ST>
+fbStateMachine(stProcessValues := ST_ProcessValues,
+				stFaults := ST_Faults,
+				stHmiSetpoints := ST_HmiSetpoints,
+				eState => E_SystemState,
+				bControlEnable => ,
+				bWaterFillEnable => ,
+				bPurgeEnable => ,
+				bReady => ,
+				bInStartup => );
+				
+//========================= SUBROUTINES =================================
+// Subroutines only run only when the state machine enables them. In Maintenance,
+// the enable flags follow the HMI control-loop override toggles.
+
+
+fbWaterFill(eMode := E_WaterFillMode,
+			bCenterSwitch := GVL_IO.biLS1_WaterMidLevel,
+			bEmptySwitch := GVL_IO.biLS3_WaterEmpty,
+			bAutofillEnable := GVL_HMI.stHmiCommand.bAutofillEnable,
+			qFillValve => fbOutputHandler.bWaterFillValve,
+			bFillComplete => ST_HmiStatus.bFillComplete,
+			bWaterFillFault => GVL_HMI.stHmiStatus.stFaults.bWaterFill,
+			bCenterFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterFull,
+			bEmptyFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterEmpty);
+
+fbPurge(bEnable :=,
+		rUpstreamPress := GVL_IO.aiPT1_UpstreamPressure,
+		bEmptyFiltered := fbWaterFill.bEmptyFiltered,
+		qDrainValve => reqDrainValve,
+		bPurgeComplete => GVL_HMI.stHmiStatus.stProcess.bSpaFlushed,
+		bPurgeTimeout => GVL_HMI.stHmiStatus.stFaults.bVesselPurge,
+		bInPressureBand =>);
+		
+(* fbPressureControl(bEnable        := fbStateMachine.bControlEnable,
+                  bDpControlOff  := fbHmi.bDpControlOff,
+                  bTempControlOff := fbHmi.bTempControlOff,
+                  stProcess      := GVL_Process.stValues,
+                  stSetpoints    := fbHmi.stSetpoints);*)
+				
+
+			   
+			   ]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

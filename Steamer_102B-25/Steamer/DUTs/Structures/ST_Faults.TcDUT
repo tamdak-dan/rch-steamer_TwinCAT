@@ -26,7 +26,7 @@ STRUCT
     bFlowLow             : BOOL;   // Flow low fault
     bFlowHigh            : BOOL;   // Flow high fault
     bWaterEmpty          : BOOL;   // Empty water level fault
-    bWaterFill           : BOOL;   // Water fill fault
+    bWaterFill           : BOOL;   // Water fill fault 
     bWaterRegulation     : BOOL;   // Water regulation fault
     bPurifierTempSet     : BOOL;   // Purifier temperature set fault
     bPurifierTempReg     : BOOL;   // Purifier temperature regulate fault

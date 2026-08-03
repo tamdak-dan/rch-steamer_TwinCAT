@@ -42,33 +42,33 @@ END_VAR
       <ST><![CDATA[//=========================== 1. Heartbeat supervision =========================
 // Pi increments stCommand.nHmiHeartbeat every poll. If it stops changing
 // for T_HMI_HEARTBEAT_TIMEOUT, declare comm loss.
-IF (GVL_HMI.stCommand.nHmiHeartbeat = nLastHeartbeat) AND NOT bFirstCycle THEN
+IF (GVL_HMI.stHmiCommand.nHmiHeartbeat = nLastHeartbeat) AND NOT bFirstCycle THEN
 	tonHbTimeout(IN := TRUE, PT := GVL_HMI.T_HMI_HEARTBEAT_TIMEOUT);
 ELSE
 	tonHbTimeout(IN := FALSE);
 END_IF
 
 bHmiCommLoss := tonHbTimeout.Q;
-nLastHeartbeat := GVL_HMI.stCommand.nHmiHeartbeat;
+nLastHeartbeat := GVL_HMI.stHmiCommand.nHmiHeartbeat;
 bFirstCycle := FALSE;
 
 //=========================== 2. Consume command pulses ========================
 // Latch each request to the output for exactly one cycle, then clear the
 // GVL bit so the Pi never has to write FALSE and a stuck TRUE cannot
 // repeat-fire.
-bCmdSesOn      := GVL_HMI.stCommand.bSesOn;
-bCmdSesOff     := GVL_HMI.stCommand.bSesOff;
-bCmdFaultReset := GVL_HMI.stCommand.bFaultReset;
-bCmdFaultAck   := GVL_HMI.stCommand.bFaultAck;
-bCmdEnterMaint := GVL_HMI.stCommand.bEnterMaint;
-bCmdExitMaint  := GVL_HMI.stCommand.bExitMaint;
+bCmdSesOn      := GVL_HMI.stHmiCommand.bSesOn;
+bCmdSesOff     := GVL_HMI.stHmiCommand.bSesOff;
+bCmdFaultReset := GVL_HMI.stHmiCommand.bFaultReset;
+bCmdFaultAck   := GVL_HMI.stHmiCommand.bFaultAck;
+bCmdEnterMaint := GVL_HMI.stHmiCommand.bEnterMaint;
+bCmdExitMaint  := GVL_HMI.stHmiCommand.bExitMaint;
 
-GVL_HMI.stCommand.bSesOn      := FALSE;
-GVL_HMI.stCommand.bSesOff     := FALSE;
-GVL_HMI.stCommand.bFaultReset := FALSE;
-GVL_HMI.stCommand.bFaultAck   := FALSE;
-GVL_HMI.stCommand.bEnterMaint := FALSE;
-GVL_HMI.stCommand.bExitMaint  := FALSE;
+GVL_HMI.stHmiCommand.bSesOn      := FALSE;
+GVL_HMI.stHmiCommand.bSesOff     := FALSE;
+GVL_HMI.stHmiCommand.bFaultReset := FALSE;
+GVL_HMI.stHmiCommand.bFaultAck   := FALSE;
+GVL_HMI.stHmiCommand.bEnterMaint := FALSE;
+GVL_HMI.stHmiCommand.bExitMaint  := FALSE;
 
 // Safety interlock: ignore SES ON during comm-lost or active fault display;
 // the state machine makes the final call, this is belt-and-braces.
@@ -77,15 +77,15 @@ IF bHmiCommLoss THEN
 END_IF
 
 //=========================== 5. Publish status ================================
-GVL_HMI.stStatus.nPlcHeartbeat     := GVL_HMI.stStatus.nPlcHeartbeat + 1;
-GVL_HMI.stStatus.nHmiHeartbeatEcho := GVL_HMI.stCommand.nHmiHeartbeat;
-GVL_HMI.stStatus.bHmiOnline        := NOT bHmiCommLoss;
+GVL_HMI.stHmiStatus.nPlcHeartbeat     := GVL_HMI.stHmiStatus.nPlcHeartbeat + 1;
+GVL_HMI.stHmiStatus.nHmiHeartbeatEcho := GVL_HMI.stHmiCommand.nHmiHeartbeat;
+GVL_HMI.stHmiStatus.bHmiOnline        := NOT bHmiCommLoss;
 
-GVL_HMI.stStatus.eState       := eState;
-GVL_HMI.stStatus.sStateName   := TO_STRING(eState);
-GVL_HMI.stStatus.bReady       := bReady;
+GVL_HMI.stHmiStatus.eState       := eState;
+GVL_HMI.stHmiStatus.sStateName   := TO_STRING(eState);
+GVL_HMI.stHmiStatus.bReady       := bReady;
 
-GVL_HMI.stStatus.stProcess    := stProcess;
+GVL_HMI.stHmiStatus.stProcess    := stProcess;
 (* IF stProcess.rFlowRated > 0.0 THEN
     GVL_HMI.stStatus.rFlowPercent := 100.0 * stProcess.rFlowActual / stProcess.rFlowRated;
 ELSE
@@ -121,14 +121,14 @@ END_FOR
 GVL_HMI.stStatus.bLoopbackOn  := bLoopbackOn;
 GVL_HMI.stStatus.bDrainModeOn := bDrainMode; *)
 
-GVL_HMI.stStatus.sPlcVersion := GVL_HMI.S_PLC_VERSION;
+GVL_HMI.stHmiStatus.sPlcVersion := GVL_HMI.S_PLC_VERSION;
 
 // uptime counter (1 s self-retriggering tick)
 fbTick(IN := NOT fbTick.Q, PT := T#1S);
 IF fbTick.Q THEN
     nUptimeSeconds := nUptimeSeconds + 1;
 END_IF
-GVL_HMI.stStatus.nUptimeSeconds := nUptimeSeconds;
+GVL_HMI.stHmiStatus.nUptimeSeconds := nUptimeSeconds;
 ]]></ST>
     </Implementation>
   </POU>

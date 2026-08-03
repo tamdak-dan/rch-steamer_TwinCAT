@@ -25,14 +25,15 @@ STRUCT
     bFaultAck       : BOOL;    // acknowledge (silences banner, faults stay listed)
 
     // --- Maintenance page ----------------------------------------------------
-    bEnterMaint     : BOOL;    // request Maintenance state
-    bExitMaint      : BOOL;    // leave Maintenance 
+    bEnterMaint     : BOOL;    				// request Maintenance state
+    bExitMaint      : BOOL;    				// leave Maintenance 
     aValveCmd      	: ARRAY[1..4] OF BOOL;  // SV1 drain, SV2 main, SV3 process, SV4 water
-    bLoopbackOn     : BOOL;    // legacy C31 loopback mode
-    bDrainMode      : BOOL;    // drain mode
-    bDpControlOff   : BOOL;    // suspend diff pressure control
-    bTempControlOff : BOOL;    // suspend purifier temp control
-    bExtHeaterEnable: BOOL;    // external heater enable
+    bLoopbackOn     : BOOL;    				// legacy C31 loopback mode
+    bDrainMode      : BOOL;    				// drain mode
+    bDpControlOff   : BOOL;    				// suspend diff pressure control
+    bTempControlOff : BOOL;    				// suspend purifier temp control
+    bExtHeaterEnable: BOOL;    				// external heater enable
+	bAutofillEnable	: BOOL;					// toggle autofill enable when running
 
     // --- Config page ----------------------------------------------------------
     bApplySetpoints : BOOL;    // pulse: validate + apply stSetpointRequest

@@ -41,5 +41,35 @@
       <From>tonAutofillDwell</From>
       <To>tonAutoFillDwell</To>
     </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="a0c26368-373e-4fd3-95ee-778e79d1422c">FB_WaterFill</Type>
+      <From>bAutofillInhibit</From>
+      <To>bAutofillEnable</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="4b1888ad-81a3-443e-843b-d656ed8d9276">FB_Purge</Type>
+      <From>rBandUpper</From>
+      <To>rPressureBandUpper</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="4b1888ad-81a3-443e-843b-d656ed8d9276">FB_Purge</Type>
+      <From>rBandLower</From>
+      <To>rPressureBandLower</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="a1b2c3d4-0008-4a5b-9c8d-e1f200000008">GVL_HMI</Type>
+      <From>stSetpointRequest</From>
+      <To>stHmiSetpoints</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="a1b2c3d4-0008-4a5b-9c8d-e1f200000008">GVL_HMI</Type>
+      <From>stCommand</From>
+      <To>stHmiCommand</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="a1b2c3d4-0008-4a5b-9c8d-e1f200000008">GVL_HMI</Type>
+      <From>stStatus</From>
+      <To>stHmiStatus</To>
+    </RenamedSymbol>
   </Renames>
 </Refactors>
