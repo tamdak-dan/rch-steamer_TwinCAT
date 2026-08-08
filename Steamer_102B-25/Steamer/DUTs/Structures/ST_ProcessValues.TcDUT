@@ -15,7 +15,7 @@ STRUCT
     // --- Pressures [Torr] -------------------------------- 
     rPt1Upstream    : REAL;    	// PT-1 upstream pressure    
     rPt2Downstream  : REAL;    	// PT-2 downstream pressure  
-    rPt3AtmRef      : REAL;    	// PT-3 atmospheric reference
+    //rPt3AtmRef      : REAL;    	// PT-3 atmospheric reference
     rDiffPressure   : REAL;    	// PT-1 - PT-2 differential
 
     // --- Temperatures [degC] ------------------------------

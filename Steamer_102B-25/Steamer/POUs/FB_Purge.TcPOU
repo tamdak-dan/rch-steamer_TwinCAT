@@ -39,7 +39,8 @@ VAR_OUTPUT
 END_VAR
 VAR
     bOkToPurge      		: BOOL;    // "OK to purge" drain-phase latch
-    rPressureBandUpper      : REAL;    // 
+    bTimeoutRetryUsed		: BOOL;	   //
+	rPressureBandUpper      : REAL;    // 
     rPressureBandLower      : REAL;    // 
 
     tonDrainOpen    		: TON;     // valve-open dwell
@@ -47,66 +48,76 @@ VAR
     tonPurgeTimeout 		: TON;     // overall watchdog
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[// Reset everything when not purging so each S11 entry starts clean.
-IF NOT bEnable THEN
-    qDrainValve     := FALSE;
-    bOkToPurge      := FALSE;
-    bPurgeComplete  := FALSE;
-    bPurgeTimeout   := FALSE;
+      <ST><![CDATA[IF NOT bEnable THEN
+    qDrainValve       := FALSE;
+    bOkToPurge        := FALSE;
+    bPurgeComplete    := FALSE;
+    bPurgeTimeout     := FALSE;
+    bTimeoutRetryUsed := FALSE;
     tonDrainOpen(IN := FALSE);
     tonEquilibrate(IN := FALSE);
     tonPurgeTimeout(IN := FALSE);
     RETURN;
 END_IF
+// NOTE: the state machine must hold bEnable TRUE for the WHOLE PurgeVessel
+// state. Dropping it the moment purge finishes lands here and wipes
+// bPurgeComplete, which would restart the blowdown.
 
-//--- pressure band around target setpoint ------------------------------------
+//--- pressure band (rung 102) ------------------------------------------------
+// Parameters are owned by whoever computes the atmospheric reference. This FB
+// only reads them.
 rPressureBandUpper := GVL_SysParameters.rPurgeTargetPressure + GVL_SysParameters.rPurgeBand;
 rPressureBandLower := GVL_SysParameters.rPurgeTargetPressure - GVL_SysParameters.rPurgeBand;
-bInPressureBand := (rUpstreamPress > rPressureBandLower) AND (rUpstreamPress < rPressureBandUpper);
+bInPressureBand    := (rUpstreamPress >= rPressureBandLower)
+                  AND (rUpstreamPress <  rPressureBandUpper);
 
-//--- start the drain phase ---------------------------------------------------
-// Enter draining when in band and not already draining / not complete.
-IF (NOT bOkToPurge) AND bInPressureBand AND (NOT bPurgeComplete) THEN
-    bOkToPurge  := TRUE;
-    qDrainValve := TRUE;            // begin with the valve open
+//--- latch the cycle once the boiler reaches the band (rung 105) -------------
+// Latch only. The valve stays shut; the first thing that happens is a settle.
+IF (NOT bOkToPurge) AND (NOT bPurgeComplete) AND bInPressureBand THEN
+    bOkToPurge := TRUE;
 END_IF
 
 IF bOkToPurge THEN
-    //--- 1. drain-open dwell -------------------------------------------------
-    // runs while the drain valve is open; on expiry, close it.
+    //--- drain-open dwell (rungs 106-107) ------------------------------------
     tonDrainOpen(IN := qDrainValve, PT := GVL_SysParameters.tDrainOpen);
     IF tonDrainOpen.Q THEN
         qDrainValve := FALSE;
     END_IF
 
-    //--- 2. equilibrate dwell ------------------------------------------------
-    // runs while the drain valve is closed, letting water settle.
-    tonEquilibrate(IN := (bOkToPurge AND NOT qDrainValve),
-                   PT := GVL_SysParameters.tEquilibrate);
+    //--- settle dwell, runs whenever the valve is shut (rung 108) ------------
+    // Self-rearming: opening the valve drops IN, which resets it.
+    tonEquilibrate(IN := NOT qDrainValve, PT := GVL_SysParameters.tEquilibrate);
 
-    //--- 3. decide: complete, or drain again ---------------------------------
+    //--- end of each settle: done, or blow down again (rungs 109-110) --------
     IF tonEquilibrate.Q THEN
         IF bEmptyFiltered THEN
-            // settled AND empty -> purge complete
             bOkToPurge     := FALSE;
             bPurgeComplete := TRUE;
+            qDrainValve    := FALSE;
         ELSIF bInPressureBand THEN
-            // settled but not empty, still in band -> another drain pulse
             qDrainValve := TRUE;
-            tonDrainOpen(IN := FALSE);      // re-arm the open dwell
-            tonEquilibrate(IN := FALSE);    // re-arm the settle dwell
         END_IF
+        // else: pressure fell out of band - hold here until the boiler
+        // loop brings it back, then open. (Legacy rung 110 does the same.)
     END_IF
 
-    //--- overall purge watchdog ----------------------------------------------
-    // Runs the whole time we are in the drain cycle; expiry -> fault report.
-    tonPurgeTimeout(IN := bOkToPurge, PT := GVL_SysParameters.tPurgeTimeout);
-    bPurgeTimeout := tonPurgeTimeout.Q;
+    //--- watchdog, one free retry (rungs 111-113) ----------------------------
+    tonPurgeTimeout(IN := TRUE, PT := GVL_SysParameters.tPurgeTimeout);
+    IF tonPurgeTimeout.Q THEN
+        IF bTimeoutRetryUsed THEN
+            bPurgeTimeout := TRUE;
+        ELSE
+            bTimeoutRetryUsed := TRUE;
+            tonPurgeTimeout(IN := FALSE);   // restart for the second window
+        END_IF
+    END_IF
 ELSE
+    qDrainValve := FALSE;                   // rung 104
+    tonDrainOpen(IN := FALSE);
+    tonEquilibrate(IN := FALSE);
     tonPurgeTimeout(IN := FALSE);
     bPurgeTimeout := FALSE;
-END_IF
-]]></ST>
+END_IF]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

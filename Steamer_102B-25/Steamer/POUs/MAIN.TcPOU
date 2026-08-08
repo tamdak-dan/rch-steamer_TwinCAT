@@ -7,7 +7,11 @@ VAR
 	HMI_bRun 	: BOOL;
 	HMI_nPT1	: INT;
 	
+	// state machine
+	eSystemState		: E_SystemState;
+
 	// function blocks
+	fbInputScaling		: FB_InputScaling;
 	fbFaultMonitor 		: FB_FaultMonitor;
 	fbFlowCalcs 		: FB_FlowCalcs;
 	fbHmi 				: FB_Hmi;
@@ -16,20 +20,25 @@ VAR
 	fbStateMachine 		: FB_StateMachine;
 	fbWaterFill 		: FB_WaterFill;
 	fbOutputHandler		: FB_OutputHandler;
-	GVL_Process: INT;
 	
 	// fbWaterFill
-	reqFillVavle				: BOOL;
+	reqSV4_FillVavle			: BOOL;
 	bLS1_WaterCenter_Filtered	: BOOL;
 	bLS3_WaterEmpty_Filtered	: BOOL;
 	
 	// fbPurge
-	reqDrainValve				: BOOL;
+	reqSV1_DrainValve			: BOOL;
+	
+	// fbPresureControl
+	reqH1_Upstream				: BOOL;
 	
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[//========================= FB CALLS =====================================
+
+// SCALE INPUTS
+fbInputScaling();
 
 // FAULT CHECK
 fbFaultMonitor();
@@ -52,57 +61,73 @@ IF fbHmi.bCmdSesOff THEN fbStateMachine.RequestStop(); END_IF
 IF fbHmi.bCmdEnterMaint THEN fbStateMachine.RequestMaintenance(); END_IF
 IF fbHmi.bCmdExitMaint THEN fbStateMachine.RequestExitMaint(); END_IF
 IF fbHmi.bCmdFaultReset THEN
-    fbFaultMonitor.ResetAll();
+    //fbFaultMonitor.ResetAll();
     fbStateMachine.RequestFaultReset();
 END_IF
 
 // Latch fault -> force state machine into Fault (only auto-clears via reset).
-IF fbFaultMonitor.bAnyLatchingFault THEN
+(* IF fbFaultMonitor.bAnyLatchingFault THEN
     fbStateMachine.RequestFault();
-END_IF
+END_IF *)
 
-fbStateMachine(stProcessValues := ST_ProcessValues,
-				stFaults := ST_Faults,
-				stHmiSetpoints := ST_HmiSetpoints,
-				eState => E_SystemState,
-				bControlEnable => ,
-				bWaterFillEnable => ,
-				bPurgeEnable => ,
-				bReady => ,
-				bInStartup => );
+fbStateMachine(
+	stProcessValues := fbInputScaling.stProcessValues,
+	stFaults := GVL_HMI.stHmiStatus.stFaults,
+	stHmiSetpoints := GVL_HMI.stHmiSetpoints,
+	bFillComplete := fbWaterFill.bFillComplete,
+	bPurgeComplete := fbPurge.bPurgeComplete,
+	eState => eSystemState,
+	eWaterFillMode => fbWaterFill.eMode,
+	bControlEnable => ,
+	bPurgeEnable => ,
+	bReady => ,
+	bInStartup => 
+);
 				
 //========================= SUBROUTINES =================================
 // Subroutines only run only when the state machine enables them. In Maintenance,
 // the enable flags follow the HMI control-loop override toggles.
 
+fbWaterFill(
+	eMode := fbStateMachine.eWaterFillMode,
+	bCenterSwitch := GVL_IO.biLS1_WaterMidLevel,
+	bEmptySwitch := GVL_IO.biLS3_WaterEmpty,
+	bAutofillEnable := GVL_HMI.stHmiCommand.bAutofillEnable,
+	qFillValve => fbOutputHandler.bWaterFillValve,
+	bFillComplete => GVL_HMI.stHmiStatus.bFillComplete,
+	bWaterFillFault => GVL_HMI.stHmiStatus.stFaults.bWaterFill,
+	bCenterFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterFull,
+	bEmptyFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterEmpty
+);
 
-fbWaterFill(eMode := E_WaterFillMode,
-			bCenterSwitch := GVL_IO.biLS1_WaterMidLevel,
-			bEmptySwitch := GVL_IO.biLS3_WaterEmpty,
-			bAutofillEnable := GVL_HMI.stHmiCommand.bAutofillEnable,
-			qFillValve => fbOutputHandler.bWaterFillValve,
-			bFillComplete => ST_HmiStatus.bFillComplete,
-			bWaterFillFault => GVL_HMI.stHmiStatus.stFaults.bWaterFill,
-			bCenterFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterFull,
-			bEmptyFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterEmpty);
-
-fbPurge(bEnable :=,
-		rUpstreamPress := GVL_IO.aiPT1_UpstreamPressure,
-		bEmptyFiltered := fbWaterFill.bEmptyFiltered,
-		qDrainValve => reqDrainValve,
-		bPurgeComplete => GVL_HMI.stHmiStatus.stProcess.bSpaFlushed,
-		bPurgeTimeout => GVL_HMI.stHmiStatus.stFaults.bVesselPurge,
-		bInPressureBand =>);
+fbPurge(
+	bEnable :=fbStateMachine.bPurgeEnable,
+	rUpstreamPress := fbInputScaling.stProcessValues.rPt1Upstream,
+	bEmptyFiltered := fbWaterFill.bEmptyFiltered,
+	qDrainValve => reqSV1_DrainValve,
+	bPurgeComplete => GVL_HMI.stHmiStatus.stProcess.bSpaFlushed,
+	bPurgeTimeout => GVL_HMI.stHmiStatus.stFaults.bVesselPurge,
+	bInPressureBand => 
+);
 		
-(* fbPressureControl(bEnable        := fbStateMachine.bControlEnable,
-                  bDpControlOff  := fbHmi.bDpControlOff,
-                  bTempControlOff := fbHmi.bTempControlOff,
-                  stProcess      := GVL_Process.stValues,
-                  stSetpoints    := fbHmi.stSetpoints);*)
-				
-
-			   
-			   ]]></ST>
+fbPressureControl(
+	bEnable := fbStateMachine.bControlEnable,          
+	eState := fbStateMachine.eState,        
+	bDpControlOff :=,
+	bTempControlOff :=,
+	bExtHeaterEnable :=,
+	stProcess :=,
+	stSetpoints :=, 
+	rTargetDiffPressure :=,
+	bH1_UpstreamHeater =>,
+	bH2_SpaHeater =>,
+	bH3_FlowmeterHeater =>,
+	bH4_ExternalHeater =>,
+	arOutputPct =>,
+	rBoilerSpTarget =>,
+	rBoilerSpActive =>,
+	bDiffPressReached =>
+);]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

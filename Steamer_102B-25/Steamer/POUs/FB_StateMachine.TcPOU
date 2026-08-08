@@ -6,17 +6,19 @@ VAR_INPUT
     stProcessValues   	: ST_ProcessValues;
     stFaults    		: ST_Faults;
     stHmiSetpoints 		: ST_HmiSetpoints;
+	bFillComplete		: BOOL;
+	bPurgeComplete		: BOOL;
 END_VAR
 VAR_OUTPUT
 	// system state
     eState           : E_SystemState := E_SystemState.InitController;
 
     // enable flags for downstream FBs
-    bControlEnable   : BOOL;   // PID pressure/temp loops may run
-    bWaterFillEnable : BOOL;   // water fill sequence active
-    bPurgeEnable     : BOOL;   // vessel purge sequence active
-    bReady           : BOOL;   // green Ready: in SteamFlowing, in-band, no faults
-    bInStartup       : BOOL;   // TRUE for any Init* state
+	eWaterFillMode 	 : E_WaterFillMode;   	// water fill mode startup/autofill/idle
+	bControlEnable   : BOOL;   				// PID pressure/temp loops may run
+    bPurgeEnable     : BOOL;   				// vessel purge sequence active
+    bReady           : BOOL;   				// green Ready: in SteamFlowing, in-band, no faults
+    bInStartup       : BOOL;   				// TRUE for any Init* state
 END_VAR
 VAR
     // --- request flags set by methods, cleared when serviced ---
@@ -35,13 +37,14 @@ VAR
     tonWarmup        : TON;    	// TC3 warmup, legacy 120 s (V1532)
     tonDiffPress     : TON;    	// dP settle, legacy 15 min baseline (see rung ~498)
     tonFillTimeout   : TON;
-    tonPurgeTimeout  : TON;
+    tonFillStopDelay : TON;
+	tonPurgeTimeout  : TON;
 
     // --- thresholds (seed from GVL_Params at init; defaults from source) ---
-    tWarmupTime      	: TIME := T#120S;   // legacy "Begin a 120 sec warm up timer for TC3"
-    tDiffPressTime   	: TIME := T#15M;    // legacy baseline 15 min
-    tFillTimeout     	: TIME := T#10M;
-    tPurgeTimeout    	: TIME := T#10M;
+    tWarmupTime      : TIME := T#120S;   // legacy "Begin a 120 sec warm up timer for TC3"
+    tDiffPressTime   : TIME := T#15M;    // legacy baseline 15 min
+    tFillTimeout     : TIME := T#10M;
+    tPurgeTimeout    : TIME := T#10M;
     
 END_VAR
 ]]></Declaration>
@@ -56,7 +59,6 @@ IF bEntry THEN
 	tonWarmup(IN := FALSE);
 	tonDiffPress(IN := FALSE);
 	tonFillTimeout(IN := FALSE);
-	tonFillStopDelay(IN := FALSE); 
 	tonPurgeTimeout(IN := FALSE);
 END_IF
 
@@ -70,11 +72,11 @@ bReqFault := FALSE;
 
 //=========================== default enable flags ============================
 // Recomputed every cycle; each state turns on what it needs below.
-bControlEnable   := FALSE;
-bWaterFillEnable := FALSE;
-bPurgeEnable     := FALSE;
-bReady           := FALSE;
-bInStartup       := FALSE;
+eWaterFillMode 	:= E_WaterFillMode.Idle;
+bControlEnable  := FALSE;
+bPurgeEnable    := FALSE;
+bReady          := FALSE;
+bInStartup      := FALSE;
 
 //================================ STATE MACHINE ==============================
 CASE eState OF
@@ -112,16 +114,16 @@ CASE eState OF
     //--------------------------------------------------------------------
     E_SystemState.FillWater:    // S20 : fill water
     //--------------------------------------------------------------------
-        bInStartup        := TRUE;
-        bWaterFillEnable  := TRUE;
+        bInStartup      := TRUE;
+        eWaterFillMode 	:= E_WaterFillMode.StartupFill;
         tonFillTimeout(IN := TRUE, PT := tFillTimeout);
 
         IF bReqStop THEN
             eState := E_SystemState.SesOff;
         ELSIF stFaults.bWaterFill OR tonFillTimeout.Q THEN
             bReqFault := TRUE;  
-        ELSIF stProcessValues.bWaterFull THEN
-			IF GVL_SysParameters.bUsr_PurgeOnStartup THEN 
+        ELSIF bFillComplete THEN
+			IF GVL_HMI.stHmiSetpoints.bSetPurgeOnStartup THEN 
 				eState := E_SystemState.PurgeVessel;
 			ELSE 
 				eState := E_SystemState.SetDiffPressure; 
@@ -133,13 +135,21 @@ CASE eState OF
     //--------------------------------------------------------------------
         bInStartup   := TRUE;
         bPurgeEnable := TRUE;
+		bControlEnable := TRUE;
         tonPurgeTimeout(IN := TRUE, PT := tPurgeTimeout);
+
+		// Blowdown first, refill second
+		IF bPurgeComplete THEN
+			eWaterFillMode := E_WaterFillMode.StartupFill;   // legacy rung 114
+		ELSE
+			eWaterFillMode := E_WaterFillMode.Idle;          // legacy rung 103: "do not fill water until purge complete"
+		END_IF
 
         IF bReqStop THEN
             eState := E_SystemState.SesOff;
         ELSIF stFaults.bVesselPurge OR tonPurgeTimeout.Q THEN
             bReqFault := TRUE;
-        ELSIF stProcessValues.bSpaFlushed THEN           // purge complete
+        ELSIF bPurgeComplete AND bFillComplete THEN
             eState := E_SystemState.SetDiffPressure;
         END_IF
 
@@ -155,7 +165,7 @@ CASE eState OF
         ELSIF tonDiffPress.Q THEN
             bReqFault := TRUE;    // could not establish dP in time
         ELSIF _IsDiffPressEstablished() THEN
-            eState := E_SystemState.InitMain;
+            eState := E_SystemState.SteamPrecheck;
         END_IF
 
     //--------------------------------------------------------------------
@@ -197,7 +207,7 @@ CASE eState OF
         // All auto outputs off. Only an operator reset leaves this state,
         // and only once all latching faults have actually cleared.
         IF bReqFaultReset AND NOT stFaults.bHmiCommLoss THEN
-            eState := E_SystemState.ControllerInit;   // legacy S10 -> S0
+            eState := E_SystemState.InitController;
         END_IF
 
 ELSE
@@ -218,8 +228,7 @@ bReqFaultReset := FALSE;
       <Declaration><![CDATA[METHOD PRIVATE _FlowInBand : BOOL]]></Declaration>
       <Implementation>
         <ST><![CDATA[// check if measured flow is within tolerance of setpoint for hot start
-_FlowInBand := ABS(stProcessValues.rFlowActual - stHmiSetpoints.rSetFlow)
-               <= (GVL_SysParameters.rFlowDeadbandPct * stHmiSetpoints.rSetFlow);]]></ST>
+_FlowInBand := ABS(stProcessValues.rFlowActual - stHmiSetpoints.rSetFlow) <= (GVL_SysParameters.rFlowDeadbandPct * stHmiSetpoints.rSetFlow);]]></ST>
       </Implementation>
     </Method>
     <Method Name="_FlowPercent" Id="{51f9c619-5222-4c48-a32b-707ad7ce6221}">

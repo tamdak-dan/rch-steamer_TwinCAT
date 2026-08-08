@@ -1,16 +1,437 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
   <POU Name="FB_PressureControl" Id="{53f0dcc3-edba-43c9-ab3b-adc2b5a6bb94}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_PressureControl
+    <Declaration><![CDATA[//=============================================================================
+// FB_PressureControl | DRAFT 8.2.26 - NOT YET VERIFIED ON HARDWARE
+//-----------------------------------------------------------------------------
+// All closed-loop heater control. 
+//
+// Each loop has two parts:
+//   PID  -> a demand in percent
+//   PWM  -> that percent turned into on/off time inside a fixed period
+//
+// LOOP MAP:
+//   [1] Boiler / upstream pressure  PT1 -> H1   PID1
+//   [2] SPA (purifier) temperature  TC1 -> H2   PID2
+//   [3] Flow meter temperature      TC2 -> H3   PID3
+//   [4] External line heater        TC3 -> H4   bang-bang + hysteresis, NOT PID.
+//
+// BOILER PRESSURE SETPOINT (loop 1) has three sources, in priority order:
+//   1. PurgeVessel state -> purge target pressure
+//   2. SPA not yet flushed -> PT3 + initial dP (100 Torr)
+//   3. normal -> PT2 + target dP + tuning offset
+// In cases 1 and 2 the PWM period is doubled while the max on-time stays
+// fixed, which is how the legacy capped the boiler heater at 50 % duty.
+// Once flushed, the setpoint is RAMPED at 1 Torr per 0.5 s instead of stepped.
+// Drives NO coil directly. Outputs heater demands; FB_OutputHandler is the
+// single writer and still gates everything on state.
+//
+// DEVIATIONS FROM THE LEGACY (all deliberate, all flagged inline):
+//   * gains are re-expressed in engineering units (%/Torr, %/degC) - see
+//     GVL_SysParameters for the conversion arithmetic. RETUNE ON THE BENCH.
+//   * setpoint ramp clamps at the target instead of dithering +/-1 Torr.
+//   * ramp is preloaded from live PT1 on enable (legacy did this only on the
+//     hot-restart path, rung 85).
+//   * derivative acts on the measurement, not the error, to kill setpoint kick.
+//   * SPA heater gets a hard over-temperature cut. The legacy had none.
+//   * external heater gets turn-off hysteresis. The legacy had none.
+//=============================================================================
+FUNCTION_BLOCK FB_PressureControl
 VAR_INPUT
+    bEnable             : BOOL;              // FB_StateMachine.bControlEnable
+    eState              : E_SystemState;     // needed to detect PurgeVessel
+    bDpControlOff       : BOOL;              // HMI/maint: suspend loop 1
+    bTempControlOff     : BOOL;              // HMI/maint: suspend loop 2
+    bExtHeaterEnable    : BOOL;              // HMI: external heater allowed
+    stProcess           : ST_ProcessValues;  // scaled PVs
+    stSetpoints         : ST_HmiSetpoints;   // operator setpoints, already clamped by FB_Hmi
+    rTargetDiffPressure : REAL;              // [Torr] from FB_FlowCalcs
 END_VAR
 VAR_OUTPUT
+    // --- heater demands -> FB_OutputHandler (single writer) ---------------
+    bH1_UpstreamHeater  : BOOL;              // H1
+    bH2_SpaHeater       : BOOL;              // H2
+    bH3_FlowmeterHeater : BOOL;              // H3
+    bH4_ExternalHeater  : BOOL;              // H4
+
+    // --- HMI / diagnostics -------------------------------------------------
+    arOutputPct         : ARRAY[1..4] OF REAL; // loop demand 0..100 %
+    rBoilerSpTarget     : REAL;                // where we want to be
+    rBoilerSpActive     : REAL;                // ramped SP fed to PID1
+    bDiffPressReached   : BOOL; 
 END_VAR
 VAR
-END_VAR
-]]></Declaration>
+    // --- edges / gating ----------------------------------------------------
+    rtrigEnable         : R_TRIG;
+    bPurging            : BOOL;
+    bFlushed            : BOOL;
+
+    // --- PID sample-rate gate (legacy K5 = 0.05 s) -----------------
+    fbSampleTick        : TON;
+    bSample             : BOOL;
+    rDt                 : REAL;              // [s] sample interval as a real
+
+    // --- loop 1 setpoint generation ----------------------------------------
+    fbRampTick          : TON;
+    tPwmPeriod1         : TIME;
+    rDutyCap1           : REAL;
+
+    // --- per-loop PID state (index = legacy PID number) --------------------
+    arIntegral          : ARRAY[1..4] OF REAL;
+    arPrevPv            : ARRAY[1..4] OF REAL;
+    arPrimed            : ARRAY[1..4] OF BOOL;
+
+    // --- per-loop PWM state -------------------------------------------------
+    arPwmTimer          : ARRAY[1..4] OF TON;
+    arPwmDutyLatched    : ARRAY[1..4] OF REAL;
+
+    i                   : INT;
+END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[//============================================================================
+// 0. SAFE STATE WHEN DISABLED
+//============================================================================
+// Everything off, every integrator and timer cleared, so a re-enable always
+// starts from a known state instead of resuming with stale wind-up.
+rtrigEnable(CLK := bEnable);
+
+IF NOT bEnable THEN
+    FOR i := 1 TO 4 DO
+        ResetLoop(nLoop := i);
+    END_FOR
+    bH1_UpstreamHeater  := FALSE;
+    bH2_SpaHeater       := FALSE;
+    bH3_FlowmeterHeater := FALSE;
+    bH4_ExternalHeater  := FALSE;
+    bDiffPressReached   := FALSE;
+    fbSampleTick(IN := FALSE);
+    fbRampTick(IN := FALSE);
+    RETURN;
+END_IF
+
+// Preload the ramp from wherever the boiler actually is, so the first
+// enable does not walk up from zero
+IF rtrigEnable.Q THEN
+    rBoilerSpActive := stProcess.rPt1Upstream;
+END_IF
+
+bPurging := (eState = E_SystemState.PurgeVessel);
+bFlushed := stProcess.bSpaFlushed;
+
+//============================================================================
+// 1. PID SAMPLE TICK
+//============================================================================
+// The PID math runs on a fixed interval, not every task cycle, so rDt is a
+// known constant. tPidSampleTime MUST be a whole multiple of the task cycle.
+fbSampleTick(IN := NOT fbSampleTick.Q, PT := GVL_SysParameters.tPidSampleTime);
+bSample := fbSampleTick.Q;
+rDt     := UDINT_TO_REAL(TIME_TO_UDINT(GVL_SysParameters.tPidSampleTime)) * 0.001;
+
+//============================================================================
+// 2. LOOP 1 SETPOINT SELECTION
+//============================================================================
+IF bPurging THEN
+    // Hold the boiler just above atmosphere so FB_Purge can cycle the drain.
+    // Uses the same parameter FB_Purge bands around - keep these two together.
+    rBoilerSpTarget := GVL_SysParameters.rPurgeTargetPressure;
+
+ELSIF NOT bFlushed THEN
+    // SPA not flushed yet: PT3 + initial dP. The state machine cycles the
+    // boiler across this setpoint N times to flush the SPA before release.
+    rBoilerSpTarget := GVL_SysParameters.rAtmosphericPressure + GVL_SysParameters.rIniDeltaPressure;
+
+ELSE
+    // Normal running: hold PT1 a target differential above PT2.
+    rBoilerSpTarget := stProcess.rPt2Downstream + rTargetDiffPressure + GVL_SysParameters.rPspGainOffset;
+END_IF
+
+//============================================================================
+// 3. LOOP 1 SETPOINT RAMP
+//============================================================================
+// Before the flush the setpoint is applied immediately; after it, walk the
+// active setpoint toward the target one step at a time so a flow change does
+// not slam the boiler.
+IF NOT bFlushed THEN
+    rBoilerSpActive := rBoilerSpTarget;
+    fbRampTick(IN := FALSE);
+ELSE
+    fbRampTick(IN := NOT fbRampTick.Q, PT := GVL_SysParameters.tSpRampInterval);
+    IF fbRampTick.Q THEN
+        IF rBoilerSpActive < rBoilerSpTarget THEN
+            rBoilerSpActive := MIN(rBoilerSpActive + GVL_SysParameters.rSpRampStep, rBoilerSpTarget);
+        ELSIF rBoilerSpActive > rBoilerSpTarget THEN
+            rBoilerSpActive := MAX(rBoilerSpActive - GVL_SysParameters.rSpRampStep, rBoilerSpTarget);
+        END_IF
+    END_IF
+END_IF
+
+// "Target reached" - cancels the startup differential-pressure watchdog in
+// FB_StateMachine. Compared against the target WITHOUT the tuning offset
+bDiffPressReached := (stProcess.rPt1Upstream >= (rBoilerSpTarget - GVL_SysParameters.rPspGainOffset));
+
+//============================================================================
+// 4. LOOP 1  -  BOILER PRESSURE -> H1
+//============================================================================
+// Slow PWM period while purging or before the flush. The max on-time is
+// fixed, so doubling the period is what halves the duty ceiling to 50 %.
+IF bPurging OR NOT bFlushed THEN
+    tPwmPeriod1 := GVL_SysParameters.tPid1PwmPeriodSlow;
+	rDutyCap1 := 50.0;
+ELSE
+    tPwmPeriod1 := GVL_SysParameters.tPid1PwmPeriod;
+	rDutyCap1 := 100.0 * UDINT_TO_REAL(TIME_TO_UDINT(GVL_SysParameters.tPid1MaxOnTime))
+			   / UDINT_TO_REAL(TIME_TO_UDINT(tPwmPeriod1));
+	rDutyCap1 := LIMIT(0.0, rDutyCap1, 100.0);
+END_IF
+
+
+
+IF bDpControlOff THEN
+    ResetLoop(nLoop := 1);
+    bH1_UpstreamHeater := FALSE;
+ELSE
+    IF bSample THEN
+        arOutputPct[1] := RunPid(nLoop     := 1,
+                                 rSp       := rBoilerSpActive,
+                                 rPv       := stProcess.rPt1Upstream,
+                                 rKp       := GVL_SysParameters.rPid1_Kp,
+                                 rTi       := GVL_SysParameters.rPid1_Ti,
+                                 rTd       := GVL_SysParameters.rPid1_Td,
+                                 rOutMin   := 0.0,
+                                 rOutMax   := rDutyCap1,
+                                 rDt       := rDt);
+    END_IF
+    bH1_UpstreamHeater := RunPwm(nLoop    := 1,
+                                 rDutyPct := arOutputPct[1],
+                                 tPeriod  := tPwmPeriod1);
+END_IF
+
+//============================================================================
+// 5. LOOP 2  -  SPA TEMPERATURE -> H2
+//============================================================================
+IF bTempControlOff THEN
+    ResetLoop(nLoop := 2);
+    bH2_SpaHeater := FALSE;
+ELSE
+    IF bSample THEN
+        arOutputPct[2] := RunPid(nLoop     := 2,
+                                 rSp       := stSetpoints.rSetSpaTemp,
+                                 rPv       := stProcess.rTc1Spa,
+                                 rKp       := GVL_SysParameters.rPid2_Kp,
+                                 rTi       := GVL_SysParameters.rPid2_Ti,
+                                 rTd       := GVL_SysParameters.rPid2_Td,
+                                 rOutMin   := 0.0,
+                                 rOutMax   := 100.0,
+                                 rDt       := rDt);
+    END_IF
+    bH2_SpaHeater := RunPwm(nLoop    := 2,
+                            rDutyPct := arOutputPct[2],
+                            tPeriod  := GVL_SysParameters.tPid2PwmPeriod);
+
+    // ADDED (no legacy equivalent): hard over-temperature cut. FB_FaultMonitor
+    // will also trip on this, but the heater should not wait for the state
+    // machine to react.
+    IF stProcess.rTc1Spa >= GVL_SysParameters.rMaxTemp THEN
+        bH2_SpaHeater := FALSE;
+    END_IF
+END_IF
+
+//============================================================================
+// 6. LOOP 3  -  FLOW METER TEMPERATURE -> H3
+//============================================================================
+IF bSample THEN
+    arOutputPct[3] := RunPid(nLoop     := 3,
+                             rSp       := GVL_SysParameters.rFlowMeterTempSp,
+                             rPv       := stProcess.rTc2FlowMeter,
+                             rKp       := GVL_SysParameters.rPid3_Kp,
+                             rTi       := GVL_SysParameters.rPid3_Ti,
+                             rTd       := GVL_SysParameters.rPid3_Td,
+                             rOutMin   := 0.0,
+                             rOutMax   := 100.0,
+                             rDt       := rDt);
+END_IF
+bH3_FlowmeterHeater := RunPwm(nLoop    := 3,
+                              rDutyPct := arOutputPct[3],
+                              tPeriod  := GVL_SysParameters.tPid5PwmPeriod);
+
+// The flow meter heater is inhibited whenever TC4 is at or above the cutout.
+IF stProcess.rTc4Delivery >= GVL_SysParameters.rDeliveryTempCutout THEN
+    bH3_FlowmeterHeater := FALSE;
+END_IF
+
+//============================================================================
+// 7. LOOP 4  -  EXTERNAL LINE HEATER -> H4
+//============================================================================
+IF NOT bExtHeaterEnable THEN
+    bH4_ExternalHeater := FALSE;
+ELSIF stProcess.rTc3External <= GVL_SysParameters.rExtHeaterTempSp THEN
+    bH4_ExternalHeater := TRUE;
+ELSIF stProcess.rTc3External > GVL_SysParameters.rExtHeaterTempSp THEN
+    bH4_ExternalHeater := FALSE;
+END_IF
+// else: inside the hysteresis band, hold the last state
+arOutputPct[4] := SEL(bH4_ExternalHeater, 0.0, 100.0);
+]]></ST>
     </Implementation>
+    <Method Name="ResetLoop" Id="{53f0dcc3-edba-43c9-ab3b-adc2b5a6bb03}">
+      <Declaration><![CDATA[//=============================================================================
+// ResetLoop
+//-----------------------------------------------------------------------------
+// Clears every piece of memory belonging to one loop: integral accumulator,
+// derivative history, PWM timer and latched duty, published output.
+// Called when the loop is disabled so a re-enable never inherits wind-up or
+// a stale pulse width.
+//=============================================================================
+METHOD PRIVATE ResetLoop
+VAR_INPUT
+    nLoop : INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF (nLoop < 1) OR (nLoop > 4) THEN
+    RETURN;
+END_IF
+
+arIntegral[nLoop]       := 0.0;
+arPrevPv[nLoop]         := 0.0;
+arPrimed[nLoop]         := FALSE;
+arPwmDutyLatched[nLoop] := 0.0;
+arPwmTimer[nLoop](IN := FALSE);
+arOutputPct[nLoop]      := 0.0;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RunPid" Id="{53f0dcc3-edba-43c9-ab3b-adc2b5a6bb01}">
+      <Declaration><![CDATA[//=============================================================================
+// RunPid
+//-----------------------------------------------------------------------------
+// Standard (ISA) positional PID, output in percent.
+//
+//   out = Kp * e  +  (Kp/Ti) * INTEGRAL(e)  -  Kp * Td * d(PV)/dt
+//
+// Derivative acts on the MEASUREMENT, not the error, so a setpoint change
+// does not produce a derivative spike.
+//
+// Anti-windup: the integral accumulator is clamped to the output range. This
+// is the same trick as legacy rung 456 ("freeze integral if over"), which
+// clamped the PID bias word to the output maximum.
+//
+// State lives in the FB's arrays, indexed by nLoop, so one method serves
+// every loop. Call at the sample rate only - it uses rDt, not the task cycle.
+//=============================================================================
+METHOD PRIVATE RunPid : REAL
+VAR_INPUT
+    nLoop   : INT;      // 1..4, index into the state arrays
+    rSp     : REAL;     // setpoint, engineering units
+    rPv     : REAL;     // process value, same units
+    rKp     : REAL;     // proportional gain [% per engineering unit]
+    rTi     : REAL;     // integral / reset time [s]. 0 disables integral action
+    rTd     : REAL;     // derivative / rate time [s]. 0 disables derivative
+    rOutMin : REAL;     // output floor [%]
+    rOutMax : REAL;     // output ceiling [%]
+    rDt     : REAL;     // sample interval [s]
+END_VAR
+VAR
+    rError  : REAL;
+    rProp   : REAL;
+    rDeriv  : REAL;
+    rOut    : REAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF (nLoop < 1) OR (nLoop > 4) OR (rDt <= 0.0) THEN
+    RunPid := 0.0;
+    RETURN;
+END_IF
+
+rError := rSp - rPv;
+
+//--- proportional ------------------------------------------------------------
+rProp := rKp * rError;
+
+//--- integral ----------------------------------------------------------------
+IF rTi > 0.0 THEN
+    arIntegral[nLoop] := arIntegral[nLoop] + (rKp / rTi) * rError * rDt;
+    // clamp to the output range: prevents wind-up while saturated
+    arIntegral[nLoop] := LIMIT(rOutMin, arIntegral[nLoop], rOutMax);
+ELSE
+    arIntegral[nLoop] := 0.0;
+END_IF
+
+//--- derivative on measurement ------------------------------------------------
+// Skipped on the first sample after a reset, when arPrevPv is meaningless.
+IF (rTd > 0.0) AND arPrimed[nLoop] THEN
+    rDeriv := -rKp * rTd * (rPv - arPrevPv[nLoop]) / rDt;
+ELSE
+    rDeriv := 0.0;
+END_IF
+arPrevPv[nLoop] := rPv;
+arPrimed[nLoop] := TRUE;
+
+//--- sum and clamp ------------------------------------------------------------
+rOut   := rProp + arIntegral[nLoop] + rDeriv;
+RunPid := LIMIT(rOutMin, rOut, rOutMax);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RunPwm" Id="{53f0dcc3-edba-43c9-ab3b-adc2b5a6bb02}">
+      <Declaration><![CDATA[//=============================================================================
+// RunPwm
+//-----------------------------------------------------------------------------
+// Time-proportioned output: turns a 0..100 % demand into a digital heater
+// command with a fixed period. 
+//
+// The demand is LATCHED at each period boundary. Without this the
+// on-time would move underneath an in-progress pulse.
+//
+// Must be called EVERY task cycle - the period timer only advances when it
+// is called. Resolution is one task cycle (10 ms), so a 2 s period gives
+// 0.5 % granularity.
+//=============================================================================
+METHOD PRIVATE RunPwm : BOOL
+VAR_INPUT
+    nLoop    : INT;     // 1..4, index into the timer array
+    rDutyPct : REAL;    // demand 0..100 %
+    tPeriod  : TIME;    // PWM period
+END_VAR
+VAR
+    nPeriodMs : UDINT;
+    nOnMs     : UDINT;
+    rDuty     : REAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nPeriodMs := TIME_TO_UDINT(tPeriod);
+
+IF (nLoop < 1) OR (nLoop > 4) OR (nPeriodMs = 0) THEN
+    RunPwm := FALSE;
+    RETURN;
+END_IF
+
+//--- free-running period timer -----------------------------------------------
+// IN := NOT Q self-restarts the TON: Q is true for one cycle, which drops IN,
+// which clears ET. Costs one task cycle per period (0.5 % at 2 s).
+arPwmTimer[nLoop](IN := NOT arPwmTimer[nLoop].Q, PT := tPeriod);
+
+//--- latch the demand once per period ----------------------------------------
+// ET is only zero at a period boundary (and on the very first call), so this
+// refreshes the on-time exactly once per pulse and never mid-pulse.
+IF arPwmTimer[nLoop].ET = T#0S THEN
+    arPwmDutyLatched[nLoop] := rDutyPct;
+END_IF
+
+rDuty := LIMIT(0.0, arPwmDutyLatched[nLoop], 100.0);
+
+//--- resolve the pulse --------------------------------------------------------
+IF rDuty <= 0.0 THEN
+    RunPwm := FALSE;
+ELSIF rDuty >= 100.0 THEN
+    // Special-cased so a saturated loop holds the coil solid instead of
+    // dropping out for the single cycle it takes the timer to roll over.
+    RunPwm := TRUE;
+ELSE
+    nOnMs  := REAL_TO_UDINT(rDuty * 0.01 * UDINT_TO_REAL(nPeriodMs));
+    RunPwm := TIME_TO_UDINT(arPwmTimer[nLoop].ET) < nOnMs;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
   </POU>
 </TcPlcObject>
