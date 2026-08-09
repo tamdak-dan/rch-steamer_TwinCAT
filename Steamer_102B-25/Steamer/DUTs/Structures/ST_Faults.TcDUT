@@ -14,7 +14,8 @@
 TYPE ST_Faults :
 STRUCT
 	// --- Legacy system faults --------------------------------------------
-    bCabinetFlood        : BOOL;   // Cabinet flood fault
+    bAnyFault			 : BOOL;   // High when any fault is active
+	bCabinetFlood        : BOOL;   // Cabinet flood fault
     bPowerFault          : BOOL;   // Power fault status
     bPneumaticHigh       : BOOL;   // Pneumatic air pressure high
     bPneumaticLow        : BOOL;   // Pneumatic air pressure low

@@ -3,11 +3,13 @@
   <POU Name="FB_StateMachine" Id="{c229f4cc-9a87-4d59-a1ae-d17bbe58764f}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_StateMachine
 VAR_INPUT
-    stProcessValues   	: ST_ProcessValues;
     stFaults    		: ST_Faults;
     stHmiSetpoints 		: ST_HmiSetpoints;
 	bFillComplete		: BOOL;
 	bPurgeComplete		: BOOL;
+	rDiffPressure		: REAL;
+	rSpaTemp			: REAL;
+	bSpaFlushed			: BOOL;
 END_VAR
 VAR_OUTPUT
 	// system state
@@ -17,6 +19,8 @@ VAR_OUTPUT
 	eWaterFillMode 	 : E_WaterFillMode;   	// water fill mode startup/autofill/idle
 	bControlEnable   : BOOL;   				// PID pressure/temp loops may run
     bPurgeEnable     : BOOL;   				// vessel purge sequence active
+	bSpaFlushEnable	 : BOOL;				// enable SPA flush sequence
+	bSpaFlushReset	 : BOOL;				// reset SPA flush fb
     bReady           : BOOL;   				// green Ready: in SteamFlowing, in-band, no faults
     bInStartup       : BOOL;   				// TRUE for any Init* state
 END_VAR
@@ -33,16 +37,11 @@ VAR
     eStatePrev       : E_SystemState;
     bEntry           : BOOL;   // TRUE on the first cycle of the current state
 
-    // --- per-state timers (replaces legacy T11 warmup, T13 dP, etc.) ---
-    tonWarmup        : TON;    	// TC3 warmup, legacy 120 s (V1532)
-    tonDiffPress     : TON;    	// dP settle, legacy 15 min baseline (see rung ~498)
-    tonFillTimeout   : TON;
-    tonFillStopDelay : TON;
-	tonPurgeTimeout  : TON;
 
+	// TODO move to fbFaultMonitor and delete from here
     // --- thresholds (seed from GVL_Params at init; defaults from source) ---
     tWarmupTime      : TIME := T#120S;   // legacy "Begin a 120 sec warm up timer for TC3"
-    tDiffPressTime   : TIME := T#15M;    // legacy baseline 15 min
+    tDiffPressTime   : TIME := T#10M;    // legacy baseline 15 min
     tFillTimeout     : TIME := T#10M;
     tPurgeTimeout    : TIME := T#10M;
     
@@ -55,11 +54,7 @@ eStatePrev := eState;
 
 //=========================== reset on entry detection ========================
 IF bEntry THEN	
-	// reset timers
-	tonWarmup(IN := FALSE);
-	tonDiffPress(IN := FALSE);
-	tonFillTimeout(IN := FALSE);
-	tonPurgeTimeout(IN := FALSE);
+	// do something
 END_IF
 
 //=========================== global fault override ===========================
@@ -75,6 +70,8 @@ bReqFault := FALSE;
 eWaterFillMode 	:= E_WaterFillMode.Idle;
 bControlEnable  := FALSE;
 bPurgeEnable    := FALSE;
+bSpaFlushEnable := FALSE;
+bSpaFlushReset  := FALSE;
 bReady          := FALSE;
 bInStartup      := FALSE;
 
@@ -95,7 +92,9 @@ CASE eState OF
     //--------------------------------------------------------------------
         IF bReqMaint THEN
             eState := E_SystemState.Maintenance;
-        ELSIF bReqStart AND NOT stFaults.bHmiCommLoss THEN
+        ELSIF stFaults.bAnyFault THEN
+			bReqFault := TRUE;
+		ELSIF bReqStart AND NOT stFaults.bHmiCommLoss THEN
             eState := E_SystemState.CheckIfHot;
         END_IF
 
@@ -107,7 +106,7 @@ CASE eState OF
         bInStartup := TRUE;
         IF _IsSpaWarm() AND (_FlowPercent() > GVL_SysParameters.rHotRestartFlowPct) THEN
             eState := E_SystemState.SteamFlowing;
-        ELSE
+		ELSE
             eState := E_SystemState.FillWater;
         END_IF
 
@@ -116,11 +115,10 @@ CASE eState OF
     //--------------------------------------------------------------------
         bInStartup      := TRUE;
         eWaterFillMode 	:= E_WaterFillMode.StartupFill;
-        tonFillTimeout(IN := TRUE, PT := tFillTimeout);
 
         IF bReqStop THEN
             eState := E_SystemState.SesOff;
-        ELSIF stFaults.bWaterFill OR tonFillTimeout.Q THEN
+        ELSIF stFaults.bAnyFault THEN
             bReqFault := TRUE;  
         ELSIF bFillComplete THEN
 			IF GVL_HMI.stHmiSetpoints.bSetPurgeOnStartup THEN 
@@ -136,7 +134,6 @@ CASE eState OF
         bInStartup   := TRUE;
         bPurgeEnable := TRUE;
 		bControlEnable := TRUE;
-        tonPurgeTimeout(IN := TRUE, PT := tPurgeTimeout);
 
 		// Blowdown first, refill second
 		IF bPurgeComplete THEN
@@ -147,38 +144,41 @@ CASE eState OF
 
         IF bReqStop THEN
             eState := E_SystemState.SesOff;
-        ELSIF stFaults.bVesselPurge OR tonPurgeTimeout.Q THEN
+        ELSIF stFaults.bAnyFault THEN
             bReqFault := TRUE;
         ELSIF bPurgeComplete AND bFillComplete THEN
             eState := E_SystemState.SetDiffPressure;
         END_IF
 
     //--------------------------------------------------------------------
-    E_SystemState.SetDiffPressure: // S13 : establish differential pressure
+    E_SystemState.SetDiffPressure: // S40 : establish differential pressure
     //--------------------------------------------------------------------
         bInStartup     := TRUE;
         bControlEnable := TRUE;   // dP PID runs to bring differential up
-        tonDiffPress(IN := TRUE, PT := tDiffPressTime);
-
-        IF stFaults.bDownstreamStartHigh OR stFaults.bStartupDiffPress THEN
-            bReqFault := TRUE;    // legacy DS start-high -> S10
-        ELSIF tonDiffPress.Q THEN
-            bReqFault := TRUE;    // could not establish dP in time
-        ELSIF _IsDiffPressEstablished() THEN
-            eState := E_SystemState.SteamPrecheck;
-        END_IF
-
-    //--------------------------------------------------------------------
-    E_SystemState.SteamPrecheck:         // S1 : final checks before flow
-    //--------------------------------------------------------------------
-        bInStartup     := TRUE;
-        bControlEnable := TRUE;
 
         IF bReqStop THEN
             eState := E_SystemState.SesOff;
-        ELSIF _IsInitComplete() THEN
-            eState := E_SystemState.SteamFlowing;
+		ELSIF stFaults.bAnyFault THEN
+            bReqFault := TRUE;    // legacy DS start-high -> S10
+        ELSIF _DiffPressEstablished() THEN
+            eState := E_SystemState.InitMain;
         END_IF
+
+    //--------------------------------------------------------------------
+    E_SystemState.InitMain:         // S50 : final checks before flow
+    //--------------------------------------------------------------------
+    bInStartup     := TRUE;
+    bControlEnable := TRUE;
+    bSpaFlushEnable := TRUE;
+    eWaterFillMode := E_WaterFillMode.RunningAutofill;
+
+    IF bReqStop THEN
+        eState := E_SystemState.SesOff;
+	ELSIF stFaults.bAnyFault THEN
+		bReqFault := TRUE;
+    ELSIF bSpaFlushed AND _TempsInBand() AND _FlowInBand() THEN
+        eState := E_SystemState.SteamFlowing;
+    END_IF
 
     //--------------------------------------------------------------------
     E_SystemState.SteamFlowing:     // S4 : normal production
@@ -224,6 +224,13 @@ bReqExitMaint  := FALSE;
 bReqFaultReset := FALSE;
 ]]></ST>
     </Implementation>
+    <Method Name="_DiffPressEstablished" Id="{b1f7aed4-a886-4a7b-bad9-cc81f3fbcb42}">
+      <Declaration><![CDATA[// TODO: real dP target from setpoints/params (legacy "Purge dP"/INI_SP).
+METHOD PRIVATE _DiffPressEstablished : BOOL]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_DiffPressEstablished := (rDiffPressure >= stHmiSetpoints.rSetDsPressure);]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="_FlowInBand" Id="{7b34b003-618c-4463-9a96-27a32ac34e28}">
       <Declaration><![CDATA[METHOD PRIVATE _FlowInBand : BOOL]]></Declaration>
       <Implementation>
@@ -241,20 +248,6 @@ ELSE
 END_IF]]></ST>
       </Implementation>
     </Method>
-    <Method Name="_IsDiffPressEstablished" Id="{b1f7aed4-a886-4a7b-bad9-cc81f3fbcb42}">
-      <Declaration><![CDATA[// TODO: real dP target from setpoints/params (legacy "Purge dP"/INI_SP).
-METHOD PRIVATE _IsDiffPressEstablished : BOOL]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[_IsDiffPressEstablished := (stProcessValues.rDiffPressure >= stHmiSetpoints.rSetDsPressure);]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="_IsInitComplete" Id="{ee780782-4c40-45b4-8daf-135589832c68}">
-      <Declaration><![CDATA[// TODO: port the final S1 readiness checks (temps settled, dP stable).
-METHOD PRIVATE _IsInitComplete : BOOL]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[_IsInitComplete := _TempsInBand() AND _IsDiffPressEstablished();]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="_IsSpaWarm" Id="{79115b31-84d2-410e-8a34-0a55ab06bbbe}">
       <Declaration><![CDATA[METHOD PRIVATE _IsSpaWarm : BOOL]]></Declaration>
       <Implementation>
@@ -265,7 +258,7 @@ METHOD PRIVATE _IsInitComplete : BOOL]]></Declaration>
       <Declaration><![CDATA[// TODO: real temperature bands from params (Warmup Temp V1535, Max Temp V1522).
 METHOD PRIVATE _TempsInBand : BOOL]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_TempsInBand := (stProcessValues.rTc1Spa >= 30.0) AND (stProcessValues.rTc1Spa <= 130.0);]]></ST>
+        <ST><![CDATA[_TempsInBand := (rSpaTemp >= 30.0) AND (rSpaTemp <= 130.0);]]></ST>
       </Implementation>
     </Method>
     <Method Name="RequestExitMaint" Id="{d6350887-01b9-4198-9246-356e4bc00618}">

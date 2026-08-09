@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="FB_SpaFlush" Id="{7c41ea90-2b6d-4f18-9a53-1c8ef0d24b77}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SpaFlush // VERIFIED 8.9.26 DASH
+VAR_INPUT
+    bEnable         : BOOL;   // TRUE while in SteamPrecheck
+    bReset          : BOOL;   // clear counter + completion
+    rUpstreamPress  : REAL;   // PT1 [Torr]
+    rAtmPressure	: REAL;   // crossing threshold [Torr] 
+END_VAR
+
+VAR_OUTPUT
+    bSpaFlushed     : BOOL;   // -> pressure loop mode + state machine (legacy C10)
+    nCrossings      : UINT;   // -> HMI progress display   (legacy V2557)
+    bSpaPressurized : BOOL;   // diagnostic: above threshold, awaiting the fall
+END_VAR
+
+VAR
+    tonConfirm      	: TON;    // falling-edge confirm dwell (legacy T6)
+	tConfirmDelay		: TIME := T#1S;
+    rSpaFlushPressure	: REAL;
+	nFlushCycles		: UINT := 20;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// reset
+IF bReset THEN
+    nCrossings  := 0;
+    bSpaPressurized := FALSE;
+    bSpaFlushed := FALSE;
+    tonConfirm(IN := FALSE);
+    RETURN;
+END_IF
+
+IF (NOT bEnable) OR bSpaFlushed THEN
+	// idle
+	bSpaPressurized := FALSE;
+    tonConfirm(IN := FALSE);
+    RETURN;
+END_IF
+
+IF bEnable THEN
+	// set pressure target
+	rSpaFlushPressure := rAtmPressure + GVL_SysParameters.rIniDeltaPressure;
+
+	// latch when pressure above target
+	IF rUpstreamPress >= rSpaFlushPressure THEN
+		bSpaPressurized := TRUE;
+	END_IF
+
+	// confirm fall when pressure drops below setpoint for time delay
+	tonConfirm(IN := bSpaPressurized AND (rUpstreamPress < rSpaFlushPressure),
+			   PT := tConfirmDelay);
+
+	// increment count on timer completion
+	IF tonConfirm.Q THEN
+		nCrossings := nCrossings + 1;
+		bSpaPressurized := FALSE;
+		tonConfirm(IN := FALSE);
+	END_IF
+	
+	// successful flush
+	IF nCrossings >= nFlushCycles THEN
+		bSpaFlushed := TRUE;
+		bSpaPressurized := FALSE;
+		tonConfirm(IN := FALSE);
+	END_IF
+END_IF
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

@@ -70,7 +70,7 @@ END_VAR]]></Declaration>
 bRunningState := (eState = E_SystemState.FillWater)
               OR (eState = E_SystemState.PurgeVessel)
               OR (eState = E_SystemState.SetDiffPressure)
-              OR (eState = E_SystemState.SteamPrecheck)
+              OR (eState = E_SystemState.InitMain)
               OR (eState = E_SystemState.SteamFlowing);
 
 //============================================================================

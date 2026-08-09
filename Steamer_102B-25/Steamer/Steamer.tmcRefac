@@ -16,5 +16,30 @@
       <From>stValues</From>
       <To>stProcessValues</To>
     </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="6d3cbdae-193b-4d46-b0cc-2b77a8d0c420">E_SystemState</Type>
+      <From>SteamPrecheck</From>
+      <To>InitMain</To>
+    </RenamedSymbol>
+    <RenamedType>
+      <Type guid="b1f7aed4-a886-4a7b-bad9-cc81f3fbcb42">_ISDIFFPRESSESTABLISHED</Type>
+      <From>_IsDiffPressEstablished</From>
+      <To>_DiffPressEstablished</To>
+    </RenamedType>
+    <RenamedSymbol>
+      <Type guid="7c41ea90-2b6d-4f18-9a53-1c8ef0d24b77">FB_SpaFlush</Type>
+      <From>bArmed</From>
+      <To>bSpaPressurized</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="7c41ea90-2b6d-4f18-9a53-1c8ef0d24b77">FB_SpaFlush</Type>
+      <From>rThreshold</From>
+      <To>rAtmPressure</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="7c41ea90-2b6d-4f18-9a53-1c8ef0d24b77">FB_SpaFlush</Type>
+      <From>rArmLevel</From>
+      <To>rSpaFlushPressure</To>
+    </RenamedSymbol>
   </Renames>
 </Refactors>

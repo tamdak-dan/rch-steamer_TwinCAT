@@ -15,7 +15,7 @@ TYPE E_SystemState :
     FillWater       	:= 20,  // SES Initialization - Fill Water
     PurgeVessel     	:= 30,  // SES Initialization - Purge Vessel
     SetDiffPressure 	:= 40,  // SES Initialization - Setting Differential Pressure
-    SteamPrecheck       := 50,  // SES Initialization - Main (final checks before flow)
+    InitMain       		:= 50,  // SES Initialization - Main (final checks before flow)
 
     // --- Run -------------------------------------------------------------
     SteamFlowing        := 60,  // Steam Flowing (normal production, PID flow control)

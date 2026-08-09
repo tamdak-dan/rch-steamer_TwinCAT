@@ -17,6 +17,7 @@ VAR
 	fbHmi 				: FB_Hmi;
 	fbPressureControl 	: FB_PressureControl;
 	fbPurge 			: FB_Purge;
+	fbSpaFlush			: FB_SpaFlush;
 	fbStateMachine 		: FB_StateMachine;
 	fbWaterFill 		: FB_WaterFill;
 	fbOutputHandler		: FB_OutputHandler;
@@ -71,11 +72,11 @@ END_IF
 END_IF *)
 
 fbStateMachine(
-	stProcessValues := fbInputScaling.stProcessValues,
 	stFaults := GVL_HMI.stHmiStatus.stFaults,
 	stHmiSetpoints := GVL_HMI.stHmiSetpoints,
 	bFillComplete := fbWaterFill.bFillComplete,
 	bPurgeComplete := fbPurge.bPurgeComplete,
+	rDiffPressure := fbInputScaling.stProcessValues.rDiffPressure,
 	eState => eSystemState,
 	eWaterFillMode => fbWaterFill.eMode,
 	bControlEnable => ,
@@ -127,7 +128,13 @@ fbPressureControl(
 	rBoilerSpTarget =>,
 	rBoilerSpActive =>,
 	bDiffPressReached =>
-);]]></ST>
+);
+
+fbSpaFlush(
+	bEnable := fbStateMachine.bSpaFlushEnable,
+	bReset := fbStateMachine.bResetSpaFlush,
+	rUpstreamPress := fbInputScaling.stValues.rPt1Upstream,
+	rAtmPressure := fbPressureControl.rBoilerSpTarget);]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>
