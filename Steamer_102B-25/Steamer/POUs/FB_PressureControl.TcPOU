@@ -49,10 +49,10 @@ VAR_INPUT
 END_VAR
 VAR_OUTPUT
     // --- heater demands -> FB_OutputHandler (single writer) ---------------
-    bH1_UpstreamHeater  : BOOL;              // H1
-    bH2_SpaHeater       : BOOL;              // H2
-    bH3_FlowmeterHeater : BOOL;              // H3
-    bH4_ExternalHeater  : BOOL;              // H4
+    qH1_UpstreamHeater  : BOOL;              // H1
+    qH2_SpaHeater       : BOOL;              // H2
+    qH3_FlowmeterHeater : BOOL;              // H3
+    qH4_ExternalHeater  : BOOL;              // H4
 
     // --- HMI / diagnostics -------------------------------------------------
     arOutputPct         : ARRAY[1..4] OF REAL; // loop demand 0..100 %
@@ -99,10 +99,10 @@ IF NOT bEnable THEN
     FOR i := 1 TO 4 DO
         ResetLoop(nLoop := i);
     END_FOR
-    bH1_UpstreamHeater  := FALSE;
-    bH2_SpaHeater       := FALSE;
-    bH3_FlowmeterHeater := FALSE;
-    bH4_ExternalHeater  := FALSE;
+    qH1_UpstreamHeater  := FALSE;
+    qH2_SpaHeater       := FALSE;
+    qH3_FlowmeterHeater := FALSE;
+    qH4_ExternalHeater  := FALSE;
     bDiffPressReached   := FALSE;
     fbSampleTick(IN := FALSE);
     fbRampTick(IN := FALSE);
@@ -142,6 +142,11 @@ ELSIF NOT bFlushed THEN
 
 ELSE
     // Normal running: hold PT1 a target differential above PT2.
+	rTargetDiffPressure := _TargetDiffPressure(rFlowSp := GVL_HMI.stHmiSetpoints.rSetFlow,
+												rP1 := stProcess.rPt1Upstream,
+												rP2 := stProcess.rPt2Downstream,
+												rP3 := stProcess.rAtmPressure);
+	
     rBoilerSpTarget := stProcess.rPt2Downstream + rTargetDiffPressure + GVL_SysParameters.rPspGainOffset;
 END_IF
 
@@ -188,7 +193,7 @@ END_IF
 
 IF bDpControlOff THEN
     ResetLoop(nLoop := 1);
-    bH1_UpstreamHeater := FALSE;
+    qH1_UpstreamHeater := FALSE;
 ELSE
     IF bSample THEN
         arOutputPct[1] := RunPid(nLoop     := 1,
@@ -201,7 +206,7 @@ ELSE
                                  rOutMax   := rDutyCap1,
                                  rDt       := rDt);
     END_IF
-    bH1_UpstreamHeater := RunPwm(nLoop    := 1,
+    qH1_UpstreamHeater := RunPwm(nLoop    := 1,
                                  rDutyPct := arOutputPct[1],
                                  tPeriod  := tPwmPeriod1);
 END_IF
@@ -211,7 +216,7 @@ END_IF
 //============================================================================
 IF bTempControlOff THEN
     ResetLoop(nLoop := 2);
-    bH2_SpaHeater := FALSE;
+    qH2_SpaHeater := FALSE;
 ELSE
     IF bSample THEN
         arOutputPct[2] := RunPid(nLoop     := 2,
@@ -224,7 +229,7 @@ ELSE
                                  rOutMax   := 100.0,
                                  rDt       := rDt);
     END_IF
-    bH2_SpaHeater := RunPwm(nLoop    := 2,
+    qH2_SpaHeater := RunPwm(nLoop    := 2,
                             rDutyPct := arOutputPct[2],
                             tPeriod  := GVL_SysParameters.tPid2PwmPeriod);
 
@@ -232,7 +237,7 @@ ELSE
     // will also trip on this, but the heater should not wait for the state
     // machine to react.
     IF stProcess.rTc1Spa >= GVL_SysParameters.rMaxTemp THEN
-        bH2_SpaHeater := FALSE;
+        qH2_SpaHeater := FALSE;
     END_IF
 END_IF
 
@@ -250,29 +255,70 @@ IF bSample THEN
                              rOutMax   := 100.0,
                              rDt       := rDt);
 END_IF
-bH3_FlowmeterHeater := RunPwm(nLoop    := 3,
+qH3_FlowmeterHeater := RunPwm(nLoop    := 3,
                               rDutyPct := arOutputPct[3],
                               tPeriod  := GVL_SysParameters.tPid5PwmPeriod);
 
 // The flow meter heater is inhibited whenever TC4 is at or above the cutout.
 IF stProcess.rTc4Delivery >= GVL_SysParameters.rDeliveryTempCutout THEN
-    bH3_FlowmeterHeater := FALSE;
+    qH3_FlowmeterHeater := FALSE;
 END_IF
 
 //============================================================================
 // 7. LOOP 4  -  EXTERNAL LINE HEATER -> H4
 //============================================================================
 IF NOT bExtHeaterEnable THEN
-    bH4_ExternalHeater := FALSE;
+    qH4_ExternalHeater := FALSE;
 ELSIF stProcess.rTc3External <= GVL_SysParameters.rExtHeaterTempSp THEN
-    bH4_ExternalHeater := TRUE;
+    qH4_ExternalHeater := TRUE;
 ELSIF stProcess.rTc3External > GVL_SysParameters.rExtHeaterTempSp THEN
-    bH4_ExternalHeater := FALSE;
+    qH4_ExternalHeater := FALSE;
 END_IF
 // else: inside the hysteresis band, hold the last state
-arOutputPct[4] := SEL(bH4_ExternalHeater, 0.0, 100.0);
+arOutputPct[4] := SEL(qH4_ExternalHeater, 0.0, 100.0);
 ]]></ST>
     </Implementation>
+    <Method Name="_TargetDiffPressure" Id="{79794fa8-6588-4d95-8432-3436f3103ddd}">
+      <Declaration><![CDATA[METHOD _TargetDiffPressure : REAL
+VAR_INPUT
+    rFlowSp     : REAL;   // set flow rate
+    rP1         : REAL;   // upstream pressure
+	rP2			: REAL;	  // downstream pressure
+	rP3			: REAL;	  // atm pressre reference
+END_VAR
+VAR
+	rdP23		: REAL;	  // diff pressure p2 to p3
+	rCondensate : REAL;   // SLM          
+    rQtotal 	: REAL;
+	
+	// target dp calculation
+	rOrificeA1				: REAL := 0.05946087;	// main orifice coefficient
+	rOrificeA2				: REAL := 0.001057082;	// condensate/drain path coefficient
+	rOrificeA3				: REAL := 0.01;			// SPA path coefficient
+	rOrificeB1				: REAL := 0.0;			// main orifice offset
+	rOrificeB2				: REAL := 0.0;			// condensate offset
+	rOrificeB3				: REAL := 40; 			// torr offset
+	rPtMinTorr				: REAL := 50;			// minimum torr to enable calculated flow
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// calculate condensate flow
+rDp23 := rP2 - rP3;
+IF rDp23 > 0.0 THEN
+    rCondensate := rOrificeA2 * SQRT(rDp23 * rP3) - rOrificeB2;
+    rCondensate := MAX(rCondensate, 0.0);
+ELSE
+    rCondensate := 0.0;
+END_IF
+
+rQtotal := rFlowSp + rCondensate + rOrificeB1;
+
+IF rP2 > rPtMinTorr THEN
+    _TargetDiffPressure := (rQtotal * rQtotal)/(rOrificeA1 * rOrificeA1)/rP2;
+ELSE
+    _TargetDiffPressure := 0.0;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="ResetLoop" Id="{53f0dcc3-edba-43c9-ab3b-adc2b5a6bb03}">
       <Declaration><![CDATA[//=============================================================================
 // ResetLoop

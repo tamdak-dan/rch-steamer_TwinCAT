@@ -68,8 +68,11 @@ VAR_GLOBAL
 		// --- loop 4: external line heater -> H4 (bang-bang) ---------------------
 		rExtHeaterTempSp		: REAL := 120.0;	// [degC] legacy V1521 = K1200
 	 
-		// --- shared temperature limit -------------------------------------------
+		// shared temperature limit
 		rMaxTemp				: REAL := 150.0;	// [degC]
+		
+
+		
  	
 	
 	

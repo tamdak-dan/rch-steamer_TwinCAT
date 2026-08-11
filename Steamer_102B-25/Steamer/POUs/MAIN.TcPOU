@@ -13,7 +13,6 @@ VAR
 	// function blocks
 	fbInputScaling		: FB_InputScaling;
 	fbFaultMonitor 		: FB_FaultMonitor;
-	fbFlowCalcs 		: FB_FlowCalcs;
 	fbHmi 				: FB_Hmi;
 	fbPressureControl 	: FB_PressureControl;
 	fbPurge 			: FB_Purge;
@@ -74,15 +73,12 @@ END_IF *)
 fbStateMachine(
 	stFaults := GVL_HMI.stHmiStatus.stFaults,
 	stHmiSetpoints := GVL_HMI.stHmiSetpoints,
+	stProcessValues := fbInputScaling.stProcessValues,
 	bFillComplete := fbWaterFill.bFillComplete,
 	bPurgeComplete := fbPurge.bPurgeComplete,
-	rDiffPressure := fbInputScaling.stProcessValues.rDiffPressure,
-	eState => eSystemState,
-	eWaterFillMode => fbWaterFill.eMode,
-	bControlEnable => ,
-	bPurgeEnable => ,
-	bReady => ,
-	bInStartup => 
+	rSpaTemp := fbInputScaling.stProcessValues.rTc1Spa,
+	bSpaFlushed := fbSpaFlush.bSpaFlushed,
+	eState => eSystemState
 );
 				
 //========================= SUBROUTINES =================================
@@ -107,34 +103,39 @@ fbPurge(
 	bEmptyFiltered := fbWaterFill.bEmptyFiltered,
 	qDrainValve => reqSV1_DrainValve,
 	bPurgeComplete => GVL_HMI.stHmiStatus.stProcess.bSpaFlushed,
-	bPurgeTimeout => GVL_HMI.stHmiStatus.stFaults.bVesselPurge,
-	bInPressureBand => 
+	bPurgeTimeout => GVL_HMI.stHmiStatus.stFaults.bVesselPurge
 );
 		
 fbPressureControl(
 	bEnable := fbStateMachine.bControlEnable,          
 	eState := fbStateMachine.eState,        
-	bDpControlOff :=,
-	bTempControlOff :=,
-	bExtHeaterEnable :=,
-	stProcess :=,
-	stSetpoints :=, 
-	rTargetDiffPressure :=,
-	bH1_UpstreamHeater =>,
-	bH2_SpaHeater =>,
-	bH3_FlowmeterHeater =>,
-	bH4_ExternalHeater =>,
-	arOutputPct =>,
-	rBoilerSpTarget =>,
-	rBoilerSpActive =>,
-	bDiffPressReached =>
+	bDpControlOff := GVL_HMI.stHmiCommand.bDpControlOff,
+	bTempControlOff := GVL_HMI.stHmiCommand.bTempControlOff,
+	bExtHeaterEnable := GVL_HMI.stHmiCommand.bExtHeaterEnable,
+	stProcess := fbInputScaling.stProcessValues,
+	stSetpoints := GVL_HMI.stHmiSetpoints, 
 );
 
 fbSpaFlush(
 	bEnable := fbStateMachine.bSpaFlushEnable,
-	bReset := fbStateMachine.bResetSpaFlush,
-	rUpstreamPress := fbInputScaling.stValues.rPt1Upstream,
-	rAtmPressure := fbPressureControl.rBoilerSpTarget);]]></ST>
+	bReset := ,
+	rUpstreamPress := fbInputScaling.stProcessValues.rPt1Upstream,
+	rAtmPressure := fbInputScaling.stProcessValues.rAtmPressure);
+	
+
+// final call
+fbOutputHandler(
+	eState := fbStateMachine.eState,
+	bWaterFillValve := fbWaterFill.qFillValve,
+	bPurgeValve := fbPurge.qDrainValve,
+	bDeliveryPermit := ,
+	bH1Upstream := fbPressureControl.qH1_UpstreamHeater,
+	bH2Purifier := fbPressureControl.qH2_SpaHeater,
+	bFmHeater := fbPressureControl.qH3_FlowmeterHeater,
+	bExtHeater := fbPressureControl.qH4_ExternalHeater,
+	arValveOverride := (*MAINTENANCE FB OUTPUT*),
+	stProcess := fbInputScaling.stProcessValues
+);]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

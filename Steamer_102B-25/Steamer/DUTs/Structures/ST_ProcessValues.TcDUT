@@ -17,6 +17,7 @@ STRUCT
     rPt2Downstream  : REAL;    	// PT-2 downstream pressure  
     //rPt3AtmRef      : REAL;    	// PT-3 atmospheric reference
     rDiffPressure   : REAL;    	// PT-1 - PT-2 differential
+	rAtmPressure	: REAL;		// atmospheric pressure - computed
 
     // --- Temperatures [degC] ------------------------------
     rTc1Spa         : REAL;    	// TC1 SPA temperature
