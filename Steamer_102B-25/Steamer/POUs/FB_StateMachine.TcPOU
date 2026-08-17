@@ -6,6 +6,7 @@ VAR_INPUT
     stFaults    		: ST_Faults;
     stHmiSetpoints 		: ST_HmiSetpoints;
 	stProcessValues		: ST_ProcessValues;
+	bDeliveryCmd		: BOOL;
 	bFillComplete		: BOOL;
 	bPurgeComplete		: BOOL;
 	rSpaTemp			: REAL;
@@ -21,6 +22,7 @@ VAR_OUTPUT
     bPurgeEnable     : BOOL;   				// vessel purge sequence active
 	bSpaFlushEnable	 : BOOL;				// enable SPA flush sequence
 	bSpaFlushReset	 : BOOL;				// reset SPA flush fb
+	bDeliveryEnable	 : BOOL;				// enable steam delivery
     bReady           : BOOL;   				// green Ready: in SteamFlowing, in-band, no faults
     bInStartup       : BOOL;   				// TRUE for any Init* state
 END_VAR
@@ -72,6 +74,7 @@ bControlEnable  := FALSE;
 bPurgeEnable    := FALSE;
 bSpaFlushEnable := FALSE;
 bSpaFlushReset  := FALSE;
+bDeliveryEnable := FALSE;
 bReady          := FALSE;
 bInStartup      := FALSE;
 
@@ -181,25 +184,34 @@ CASE eState OF
     END_IF
 
     //--------------------------------------------------------------------
-    E_SystemState.SteamFlowing:     // S4 : normal production
+    E_SystemState.SteamFlowing:     // S60: normal production
     //--------------------------------------------------------------------
         bControlEnable := TRUE;
+		eWaterFillMode := E_WaterFillMode.RunningAutofill;
         // Ready = producing, no active faults, flow tracking setpoint
-        bReady := NOT stFaults.bHmiCommLoss
+        bReady := NOT stFaults.bAnyFault
                   AND _FlowInBand()
                   AND _TempsInBand();
-
+		
+		bDeliveryEnable := bDeliveryCmd AND NOT stFaults.bHmiCommLoss;
+				  
         IF bReqStop THEN
             eState := E_SystemState.SesOff;
+		ELSIF stFaults.bAnyFault THEN
+			bReqFault := TRUE;
         END_IF
 
     //--------------------------------------------------------------------
     E_SystemState.Maintenance:      // S7 : manual actuation
     //--------------------------------------------------------------------
         // Outputs handled by FB_OutputHandler via HMI overrides; no auto control.
-        IF bReqExitMaint OR bReqStop THEN
-            eState := E_SystemState.SesOff;
-        END_IF
+		bControlEnable := NOT stFaults.bHmiCommLoss;
+		
+		IF bReqExitMaint OR bReqStop THEN
+			eState := E_SystemState.SesOff;
+		ELSIF stFaults.bAnyFault THEN
+			bReqFault := TRUE;
+		END_IF
 
     //--------------------------------------------------------------------
     E_SystemState.Fault:            // S10 : latched fault

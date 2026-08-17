@@ -55,7 +55,7 @@ VAR
     bSV1_DrainValve        : BOOL;
     bSV2_SpaValve          : BOOL;
     bSV3_DeliveryValve     : BOOL;
-    bSV4_WaterInletValve        : BOOL;
+    bSV4_WaterInletValve   : BOOL;
 
     // SesOff SV2 pressure relief delayed close
     tonSv2Close      : TON;
@@ -83,7 +83,7 @@ CASE eState OF
         bSV4_WaterInletValve    := arValveOverride[4];
 
     //-- Safe shutdown: SV1/3/4 closed; SV2 pressure-relief then delayed ----
-    //   SV2 held open until upstream pressure < 700 Torr
+    //   SV2 held open until upstream pressure < 800 Torr
     E_SystemState.SesOff, E_SystemState.InitController, E_SystemState.CheckIfHot, E_SystemState.Fault:
         bSV1_DrainValve    := FALSE;
         bSV3_DeliveryValve := FALSE;
@@ -114,8 +114,6 @@ END_CASE
 //============================================================================
 // 2. HARD INTERLOCKS  (apply AFTER resolution; no state can bypass)
 //============================================================================
-// TODO: replace with the real interlock matrix from the P&ID / legacy
-//       safety rungs. These are structural placeholders.
 IF bSV3_DeliveryValve THEN
     bSV1_DrainValve := FALSE;         // no draining during delivery
 END_IF

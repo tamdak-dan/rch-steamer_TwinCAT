@@ -15,6 +15,7 @@ VAR_OUTPUT
 	// one-cycle command pulses for MAIN / state machine
     bCmdSesOn       	: BOOL;
     bCmdSesOff      	: BOOL;
+	bCmdDelivery		: BOOL;
     bCmdFaultReset  	: BOOL;
     bCmdFaultAck    	: BOOL;
     bCmdEnterMaint  	: BOOL;
@@ -58,6 +59,7 @@ bFirstCycle := FALSE;
 // repeat-fire.
 bCmdSesOn      := GVL_HMI.stHmiCommand.bSesOn;
 bCmdSesOff     := GVL_HMI.stHmiCommand.bSesOff;
+bCmdDelivery   := ;
 bCmdFaultReset := GVL_HMI.stHmiCommand.bFaultReset;
 bCmdFaultAck   := GVL_HMI.stHmiCommand.bFaultAck;
 bCmdEnterMaint := GVL_HMI.stHmiCommand.bEnterMaint;

@@ -6,7 +6,7 @@
 VAR_GLOBAL
 	
 	// SV2 pressure relief and closing delay
-		rUpstreamPressureReleived : REAL := 700;	// 700 Torr
+		rUpstreamPressureReleived : REAL := 800;	// 800 Torr
 		tSv2CloseDelay 		: TIME := T#5S;
 	
 	// --- State Machine ------------------------------------------------------

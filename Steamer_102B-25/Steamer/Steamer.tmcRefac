@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Refactors>
+  <Renames>
+    <RenamedSymbol>
+      <Type guid="c229f4cc-9a87-4d59-a1ae-d17bbe58764f">FB_StateMachine</Type>
+      <From>bReqDelivery</From>
+      <To>bDeliveryCmd</To>
+    </RenamedSymbol>
+  </Renames>
+</Refactors>
