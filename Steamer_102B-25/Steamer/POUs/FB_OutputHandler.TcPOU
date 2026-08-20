@@ -1,37 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
   <POU Name="FB_OutputHandler" Id="{035bd223-4782-4b25-9fd3-97d3ad8a81a2}" SpecialFunc="None">
-    <Declaration><![CDATA[//=============================================================================
-// FB_OutputHandler
-//-----------------------------------------------------------------------------
-// The SINGLE WRITER for every physical output coil (GVL_IO.qx*).
-// No other POU may assign a valve or heater output. This eliminates the
-// multi-writer races the original ladder was prone to (any rung could drive
-// any Y coil).
-//
-// SV1..SV4 are fast-acting ON/OFF solenoids: fully open or fully closed,
-// never modulated. All valve logic here is therefore boolean. (The PID
-// loops in FB_PressureControl drive continuous outputs elsewhere - most
-// likely the analog output card - NOT these solenoids.)
-//
-// Responsibilities:
-//   1. Resolve each valve's command from the current context:
-//        - Maintenance state -> HMI manual overrides (already state-gated)
-//        - SesOff            -> safe shutdown incl. SV2 pressure relief
-//        - Fault             -> hard close everything
-//        - running states    -> automatic requests (fill / purge / delivery)
-//   2. Enforce hard interlocks that NO state may bypass.
-//   3. Force heaters off whenever the system is not running.
-//   4. Publish arValveState for HMI feedback.
-//
-// LAST call in MAIN, after the state machine + control FBs produced intent.
-//=============================================================================
-FUNCTION_BLOCK FB_OutputHandler
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_OutputHandler
 VAR_INPUT
     eState           : E_SystemState;
 
     // --- automatic sources (intent from control/sequence FBs) ---
-    bWaterFillValve  : BOOL;	// FB_WaterFill request  -> SV4
+    bWaterFillValve	 : BOOL;	// FB_WaterFill request  -> SV4
     bPurgeValve      : BOOL;	// FB_Purge request      -> SV2 during purge
     bDeliveryPermit  : BOOL;	// state machine: SV3 delivery allowed
     bH1Upstream      : BOOL;	// upstream heater
@@ -52,15 +27,15 @@ VAR_OUTPUT
 END_VAR
 VAR
     // resolved valve commands before interlocks
-    bSV1_DrainValve        : BOOL;
-    bSV2_SpaValve          : BOOL;
-    bSV3_DeliveryValve     : BOOL;
-    bSV4_WaterInletValve   : BOOL;
+    bSV1_DrainValve        	: BOOL;
+    bSV2_SpaValve          	: BOOL;
+    bSV3_DeliveryValve     	: BOOL;
+    bSV4_WaterInletValve   	: BOOL;
 
     // SesOff SV2 pressure relief delayed close
-    tonSv2Close      : TON;
+    tonSv2Close      		: TON;
 
-    bRunningState    : BOOL;
+    bRunningState    		: BOOL;
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[// Convenience: are we in a state that runs process automatically?

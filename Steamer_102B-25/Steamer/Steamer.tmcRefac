@@ -6,5 +6,25 @@
       <From>bReqDelivery</From>
       <To>bDeliveryCmd</To>
     </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="1f8b8785-9781-4f77-85e6-df1d5973ba68">FB_FaultMonitor</Type>
+      <From>bWaterCentreFiltered</From>
+      <To>bWaterCenterFiltered</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="1f8b8785-9781-4f77-85e6-df1d5973ba68">FB_FaultMonitor</Type>
+      <From>tGeneralFilter_250</From>
+      <To>tGeneral_250ms</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="410e5bc5-dbe8-44c0-bfab-b5480c733766">GVL_SysParameters</Type>
+      <From>rExtLowTemp</From>
+      <To>rExtMinReadyTemp</To>
+    </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="1f8b8785-9781-4f77-85e6-df1d5973ba68">FB_FaultMonitor</Type>
+      <From>tExtRiseDelay</From>
+      <To>tExtRiseTimeout</To>
+    </RenamedSymbol>
   </Renames>
 </Refactors>

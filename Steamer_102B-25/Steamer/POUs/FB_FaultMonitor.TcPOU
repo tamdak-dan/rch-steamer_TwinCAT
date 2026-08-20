@@ -1,16 +1,473 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
-  <POU Name="FB_FaultMonitor" Id="{6cc8fde6-1295-4af5-bc51-9463c95b90a2}" SpecialFunc="None">
+  <POU Name="FB_FaultMonitor" Id="{1f8b8785-9781-4f77-85e6-df1d5973ba68}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_FaultMonitor
 VAR_INPUT
+    // --- scaled process values ------------------------------------------
+    stProcess           : ST_ProcessValues;
+
+    // --- sequence context (drives scope gating) -------------------------
+    eState              : E_SystemState;
+	eFaultId			: E_FaultId;
+    bPurgeActive        : BOOL;   // TRUE while the purge sequence runs
+    bWaterFillActive    : BOOL;   // TRUE while a fill is being commanded
+    bWaterFillRequest   : BOOL;   // level control asking for inlet water
+    bDiffPressActive    : BOOL;   // TRUE while differential pressure is being established
+    bDiffPressReached   : BOOL;   // upstream pressure reached target setpoint
+    bTempControlActive  : BOOL;   // TRUE while the heater loops are enabled
+    bColdStart          : BOOL;   // one-shot: cold start, arm the temperature-rise check
+    bReadyReached       : BOOL;   // steam-ready has been achieved at least once
+    bSteamFlowing       : BOOL;   // production state
+    bColdEqualisedCheck : BOOL;   // TRUE for the cold, pressure-equalised transducer cross-check
+
+    // --- transducer cross-check results (from FB_InputScaling) ----------
+    rPt1NegOffset       : REAL;   // computed downward correction on upstream transducer
+    rPt1PosOffset       : REAL;   // computed upward correction on upstream transducer
+
+    // --- filtered level switches ----------------------------------------
+    bWaterEmptyFiltered : BOOL;   // filtered lower limit switch: TRUE = vessel empty
+    bWaterCenterFiltered: BOOL;   // filtered centre limit switch: TRUE = water present
+
+    // --- configuration ---------------------------------------------------
+    bExternalHeaterOff  : BOOL;   // external heater not installed / disabled
+    bHmiHeartbeatOk     : BOOL;   // RPi heartbeat healthy
 END_VAR
 VAR_OUTPUT
+    stFaults            : ST_Faults;
+    bAnyLatchingFault   : BOOL;   		// mirrors stFaults.bAnyFault, for MAIN
+    aActiveFaults		: ARRAY[1..2, 1..5] OF STRING(30);
 END_VAR
 VAR
-END_VAR
-]]></Declaration>
+    // --- reset-window suppression ----------------------------------------
+    bSensorHwInhibit    : BOOL;
+
+    // --- filter timers: periodic checks -----------------------------------
+    tonPneumaticLow     : TON;
+	tPneumaticFilter	: TIME := T#6S;
+    tonUpstreamHigh     : TON;
+    tonDownstreamHigh   : TON;
+    tonPt1Bad           : TON;
+    tonPt2Bad           : TON;
+    tonSpaOverTemp      : TON;
+    tonFmOverTemp       : TON;
+    tonExtOverTemp      : TON;
+    tonDsOverTemp       : TON;
+
+	tGeneral_250ms		: TIME := T#250MS;
+	tGeneral_10s		: TIME := T#10S;
+	
+    // --- sequence watchdogs ------------------------------------------------
+    tonWarmup           : TON;
+	tWarmup				: TIME := T#300S;
+    tonPurge            : TON;
+    tonDiffPress        : TON;
+	tDiffPressTimeout	: TIME := T#20M;
+    tonWaterFill        : TON;
+    tonWaterReg         : TON;
+    tonWaterEmpty       : TON;
+	
+	tWater_15m			: TIME := T#15M;
+
+    // --- external-line temperature checks ---------------------------------
+    tonExtWarmupWindow  : TON;   			// fixed window for the temperature-rise test
+	tExtRiseTimeout		: TIME := T#120S;	// delay to allow ext temp rise on cold start
+    tonExtLowAtReady    : TON;
+    rExtTempAtStart     : REAL;  			// external temperature captured at cold start
+    bExtRiseArmed       : BOOL;
+    bExtRiseTested      : BOOL;
+
+    // --- flow ratio check --------------------------------------------------
+    tonFlowRatio        : TON;
+	tFlowRatioFilter	: TIME := T#1M;
+
+    // --- edge detection ----------------------------------------------------
+    rtColdStart         : R_TRIG;
+    bAnyFaultPrev       : BOOL;
+END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[//--- Power fault. No filter: this is a hard utility loss. -------------------
+IF stProcess.bPowerFaultSensor THEN
+    stFaults.bPowerFault := TRUE;
+    _Report(eFaultId.PowerFault);
+END_IF
+
+//--- Cabinet flood. Sensor is normally closed, so LOSS of the input is the
+//    alarm condition. A severed cable trips the fault, which is the intent.
+IF NOT stProcess.bCabinetFloodSensor THEN
+    stFaults.bCabinetFlood := TRUE;
+    _Report(E_FaultId.CabinetFlood);
+END_IF
+
+//--- Pneumatic supply low. Also normally closed: open contact = low air.
+//    Filtered because supply pressure dips briefly on every valve actuation.
+(* tonPneumaticLow(IN := NOT stProcess.bPneumaticPressureSwitch,
+                PT := tPneumaticFilter);   // 6.0 s
+IF tonPneumaticLow.Q THEN
+    stFaults.bPneumaticLow := TRUE;
+    _Report(E_FaultId.PneumaticLow);
+END_IF *)
+
+//--- Upstream over pressure. Short filter rejects transducer noise while
+//    still tripping fast enough to matter on a real overpressure.
+tonUpstreamHigh(IN := stProcess.rPt1Upstream > GVL_SysParameters.rUpstreamMaxPressure,
+                PT := tGeneral_250ms);    // 250 ms
+IF tonUpstreamHigh.Q THEN
+    stFaults.bUpstreamOverPress := TRUE;
+    _Report(E_FaultId.UpstreamOverPress);
+END_IF
+
+//--- Downstream over pressure. ---------------------------------------------
+tonDownstreamHigh(IN := stProcess.rPt2Downstream > GVL_SysParameters.rDownstreamMaxPressure,
+                  PT := tGeneral_250ms);
+IF tonDownstreamHigh.Q THEN
+    stFaults.bDownstreamOverPress := TRUE;
+    _Report(E_FaultId.DownstreamOverPress);
+END_IF
+
+//--- Transducer health. A reading below the minimum credible pressure means
+//    the transducer is disconnected or its loop supply is dead, not that the
+//    vessel is genuinely at that pressure. Suppressed during the reset window
+//    so a dead transducer does not deadlock the operator.
+tonPt1Bad(IN := (stProcess.rPt1Upstream < GVL_SysParameters.rPtMininum) AND NOT bSensorHwInhibit,
+          PT := tGeneral_250ms);
+IF tonPt1Bad.Q THEN
+    stFaults.bPt1HardwareFault := TRUE;
+    _Report(E_FaultId.Pt1Hardware);
+END_IF
+
+tonPt2Bad(IN := (stProcess.rPt2Downstream < GVL_SysParameters.rPtMininum) AND NOT bSensorHwInhibit,
+          PT := tGeneral_250ms);
+IF tonPt2Bad.Q THEN
+    stFaults.bPt2HardwareFault := TRUE;
+    _Report(E_FaultId.Pt2Hardware);
+END_IF
+
+//--- Over-temperature, all four channels against the shared maximum.
+//    NOTE: the legacy latched NO bit for any of these four - it only pushed a
+//    message and jumped. Named latches added so bAnyFault is truthful.
+tonSpaOverTemp(IN := stProcess.rTc1Spa > GVL_SysParameters.rMaxTemp, PT := tGeneral_10s);
+IF tonSpaOverTemp.Q THEN
+    stFaults.bSpaOverTemp := TRUE;
+    _Report(E_FaultId.SpaOverTemp);
+END_IF
+
+tonFmOverTemp(IN := stProcess.rTc2FlowMeter > GVL_SysParameters.rMaxTemp,
+              PT := tGeneral_10s);
+IF tonFmOverTemp.Q THEN
+    stFaults.bFlowMeterOverTemp := TRUE;
+    _Report(E_FaultId.FlowMeterOverTemp);
+END_IF
+
+// External channel is skipped entirely when the external heater is disabled,
+// because an unheated line legitimately sits at ambient.
+tonExtOverTemp(IN := (stProcess.rTc3External > GVL_SysParameters.rMaxTemp) AND NOT bExternalHeaterOff,
+               PT := tGeneral_10s);
+IF tonExtOverTemp.Q THEN
+    stFaults.bExtOverTemp := TRUE;
+    _Report(E_FaultId.ExternalOverTemp);
+END_IF
+
+tonDsOverTemp(IN := stProcess.rTc4Delivery > GVL_SysParameters.rMaxTemp,
+              PT := tGeneral_10s);
+IF tonDsOverTemp.Q THEN
+    stFaults.bDownstreamOverTemp := TRUE;
+    _Report(E_FaultId.DownstreamOverTemp);
+END_IF
+
+//--- HMI communication loss. New in this system; no legacy equivalent. ------
+IF NOT bHmiHeartbeatOk THEN
+    stFaults.bHmiCommLoss := TRUE;
+    _Report(E_FaultId.HmiCommLoss);
+END_IF
+
+//=============================================================================
+// WARM-UP FAULTS - only while the heater loops are enabled
+//=============================================================================
+tonWarmup(IN := bTempControlActive, PT := tWarmup);
+
+IF tonWarmup.Q THEN
+    IF stProcess.rTc1Spa < GVL_SysParameters.rWarmupTemp THEN
+        stFaults.bSpaWarmupTimeout := TRUE;
+        _Report(E_FaultId.SpaWarmupTimeout);
+    END_IF
+    IF stProcess.rTc2FlowMeter < GVL_SysParameters.rWarmupTemp THEN
+        stFaults.bFlowmeterWarmupTimeout := TRUE;
+        _Report(E_FaultId.FlowMeterWarmupTimeout);
+    END_IF
+    IF (stProcess.rTc3External < GVL_SysParameters.rWarmupTemp)
+       AND NOT bExternalHeaterOff THEN
+        stFaults.bExtWarmupTimeout := TRUE;
+        _Report(E_FaultId.ExternalWarmupTimeout);
+    END_IF
+    IF stProcess.rTc4Delivery < GVL_SysParameters.rWarmupTemp THEN
+        stFaults.bDownstreamWarmupTimeout := TRUE;
+        _Report(E_FaultId.DownstreamWarmupTimeout);
+    END_IF
+END_IF
+
+//=============================================================================
+// EXTERNAL LINE TEMPERATURE - two dedicated checks
+//=============================================================================
+rtColdStart(CLK := bColdStart);
+IF rtColdStart.Q AND NOT bExternalHeaterOff THEN
+    rExtTempAtStart := stProcess.rTc3External;
+    bExtRiseArmed   := TRUE;
+    bExtRiseTested  := FALSE;
+END_IF
+
+tonExtWarmupWindow(IN := bExtRiseArmed, PT := tExtRiseTimeout);   // 120 s
+
+IF tonExtWarmupWindow.Q AND NOT bExtRiseTested THEN
+    bExtRiseTested := TRUE;
+    bExtRiseArmed  := FALSE;
+    IF (stProcess.rTc3External - rExtTempAtStart) < GVL_SysParameters.rExtTempMinRise THEN
+        stFaults.bExtTempDecoupled := TRUE;
+        _Report(E_FaultId.ExternalNoTempRise);
+    END_IF
+END_IF
+
+tonExtLowAtReady(IN := bReadyReached AND NOT bExternalHeaterOff 
+				 AND (stProcess.rTc3External < GVL_SysParameters.rExtMinReadyTemp),
+                 PT := tGeneral_10s);      // 10.0 s
+IF tonExtLowAtReady.Q THEN
+    stFaults.bExtTempLow := TRUE;
+    _Report(E_FaultId.ExternalLowAtReady);
+END_IF
+
+//=============================================================================
+// 4. WATER FAULTS - scoped to the water control sequence
+//=============================================================================
+// Empty-vessel check. The filter is deliberately much longer during purge,
+// because purge repeatedly drains the vessel on purpose and the level would
+// otherwise trip this constantly.
+tonWaterEmpty(IN := NOT bWaterEmptyFiltered, PT := tWater_15m);
+
+IF tonWaterEmpty.Q THEN
+    stFaults.bWaterEmpty := TRUE;
+    _Report(E_FaultId.WaterEmpty);
+END_IF
+
+// Fill timeout: inlet has been open for the full fill window and the centre
+// switch still reports no water. Either the supply is dry or the inlet valve
+// is not passing.
+tonWaterFill(IN := bWaterFillActive AND NOT bWaterCenterFiltered,
+             PT := tWater_15m);
+IF tonWaterFill.Q THEN
+    stFaults.bWaterFillTimeout := TRUE;
+    _Report(E_FaultId.WaterFill);
+END_IF
+
+// Regulation fault: the level loop has been asking for water continuously for
+// the whole check period. Distinct from the fill timeout - here the level does
+// respond, but never satisfies the loop, which points at a leak or a drain
+// valve that is not sealing.
+tonWaterReg(IN := bWaterFillRequest,
+            PT := tWater_15m);
+IF tonWaterReg.Q THEN
+    stFaults.bWaterRegulationFault := TRUE;
+    _Report(E_FaultId.WaterRegulation);
+END_IF
+
+//=============================================================================
+// 5. PURGE WATCHDOG - retry once, then fault
+//=============================================================================
+tonPurge(IN := bPurgeActive, PT := GVL_SysParameters.tPurgeTimeout);
+
+IF tonPurge.Q THEN
+	stFaults.bPurgeTimeout := TRUE;
+	_Report(E_FaultId.VesselPurgeTimeout);
+END_IF
+
+//=============================================================================
+// 6. DIFFERENTIAL PRESSURE FAULTS
+//=============================================================================
+// Downstream too high on entry. Immediate, no filter: this is a go/no-go
+// precondition, not a transient.
+IF bDiffPressActive AND (stProcess.rPt2Downstream > GVL_SysParameters.rDsHighStartPressure) THEN
+    stFaults.bDownstreamStartOverPress := TRUE;
+    _Report(E_FaultId.DownstreamStartHigh);
+END_IF
+
+// Timeout establishing differential pressure. Same retry-once shape as purge.
+tonDiffPress(IN := bDiffPressActive AND NOT bDiffPressReached,
+             PT := tDiffPressTimeout);
+
+IF tonDiffPress.Q THEN
+	stFaults.bStartDpTimeout := TRUE;
+	_Report(E_FaultId.StartupDiffPressTimeout);
+END_IF
+
+// Transducer cross-check. Run only when the system is cold and both sides have
+// equalised to atmosphere - at that point both transducers must agree, and
+// must agree with atmospheric pressure. Any disagreement means one of them has
+// drifted, and every downstream flow calculation would inherit the error.
+IF bColdEqualisedCheck THEN
+    IF (stProcess.rPt2Downstream > GVL_SysParameters.rP3AbsMax)
+       OR (stProcess.rPt2Downstream < GVL_SysParameters.rP3AbsMin)
+       OR (rPt1NegOffset > GVL_SysParameters.rPtMaxVariance)
+       OR (rPt1PosOffset > GVL_SysParameters.rPtMaxVariance) THEN
+        stFaults.bStartDpHardwareFault := TRUE;
+        _Report(E_FaultId.StartupDiffPressXCheck);
+    END_IF
+END_IF
+
+//=============================================================================
+// 7. FLOW RATE ERROR
+//=============================================================================
+// The flow-to-differential-pressure ratio exceeding its calibration maximum
+// means the two independent flow measurements disagree - the orifice and the
+// SPA pressure drop no longer tell the same story. A differential pressure of
+// exactly zero is caught separately because it makes the ratio undefined
+// rather than merely large.
+// Only meaningful in production above 20% of rated flow; below that the
+// differential pressure signal is too small to draw conclusions from.
+tonFlowRatio(IN := bSteamFlowing
+ 			 AND (stProcess.rFlowSetpoint > (0.20 * stProcess.rFlowRated))
+			 AND ( (stProcess.rDiffPressure <= 0.0)
+			 OR (stProcess.rFlowRatio > GVL_SysParameters.rMaxFlowDpRatio) ),
+             PT := tFlowRatioFilter);       // 60 s
+IF tonFlowRatio.Q THEN
+    stFaults.bFlowFault := TRUE;
+    _Report(E_FaultId.FlowRateError);
+END_IF
+
+//=============================================================================
+// 8. AGGREGATE
+//=============================================================================
+stFaults.bAnyFault :=
+      stFaults.bPowerFault           	 	OR stFaults.bCabinetFlood
+   OR stFaults.bPneumaticLow         	 	OR stFaults.bUpstreamOverPress
+   OR stFaults.bDownstreamOverPress  	 	OR stFaults.bPt1HardwareFault
+   OR stFaults.bPt2HardwareFault     	 	OR stFaults.bSpaOverTemp
+   OR stFaults.bFlowMeterOverTemp    	 	OR stFaults.bExtOverTemp
+   OR stFaults.bDownstreamOverTemp    		OR stFaults.bSpaWarmupTimeout
+   OR stFaults.bFlowmeterWarmupTimeout      OR stFaults.bExtWarmupTimeout
+   OR stFaults.bDownstreamWarmupTimeout     OR stFaults.bExtTempDecoupled
+   OR stFaults.bExtTempLow		    		OR stFaults.bWaterEmpty
+   OR stFaults.bWaterFillTimeout       		OR stFaults.bWaterRegulationFault
+   OR stFaults.bPurgeTimeout           		OR stFaults.bDownstreamStartOverPress
+   OR stFaults.bStartDpTimeout     			OR stFaults.bFlowFault
+   OR stFaults.bStartDpHardwareFault		OR stFaults.bHmiCommLoss;
+
+bAnyLatchingFault := stFaults.bAnyFault;
+bAnyFaultPrev     := stFaults.bAnyFault;]]></ST>
     </Implementation>
+    <Method Name="_Report" Id="{6cc8fde6-0001-4af5-bc51-9463c95b9001}">
+      <Declaration><![CDATA[// Capture first-out. Only the first fault in a healthy-to-faulted transition
+// is recorded; later faults latch their own bits but do not overwrite the
+// reported cause. This is the fix for the legacy behaviour, where the message
+// register was overwritten by whichever fault happened to evaluate last in
+// the scan, so the operator was routinely shown a downstream consequence
+// instead of the actual trigger.
+METHOD PRIVATE _Report
+VAR_INPUT
+    eErrorID	: E_FaultId;
+END_VAR
+
+VAR
+	i			: DINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF aActiveFaults[1, UPPER_BOUND(aActiveFaults, 2)] = '' THEN
+	FOR i:=LOWER_BOUND(aActiveFaults, 2) TO UPPER_BOUND(aActiveFaults, 2) DO
+		IF aActiveFaults[1,i] = '' THEN
+			aActiveFaults[1,i] := TO_STRING(eErrorID);
+			aActiveFaults[2,i] := DT_TO_STRING(FILETIME_TO_DT(F_GetSystemTime));
+			EXIT;
+		END_IF
+	END_FOR
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="InhibitSensorHwEval" Id="{6cc8fde6-0003-4af5-bc51-9463c95b9003}">
+      <Declaration><![CDATA[// Suppress the transducer health checks. The state machine asserts this on
+// entry to Fault and drops it once a reset succeeds.
+//
+// Without it, a genuinely dead transducer re-latches its fault within 250 ms
+// of every reset attempt and the operator can never clear the alarm to get to
+// maintenance mode. The legacy solved this the same way, by gating those two
+// timers on not-being-in-the-fault-stage.
+METHOD InhibitSensorHwEval : BOOL
+VAR_INPUT
+    bInhibit : BOOL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bSensorHwInhibit := bInhibit;
+IF bInhibit THEN
+    tonPt1Bad(IN := FALSE);
+    tonPt2Bad(IN := FALSE);
+END_IF
+InhibitSensorHwEval := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ResetAll" Id="{6cc8fde6-0002-4af5-bc51-9463c95b9002}">
+      <Declaration><![CDATA[// Operator reset. Clears every latch and every filter timer unconditionally,
+// then lets the next cycle re-evaluate from scratch. Anything still genuinely
+// wrong re-latches immediately and the state machine refuses to leave Fault.
+//
+// This clears ALL faults, deliberately. The legacy reset cleared only fifteen
+// of its bits and left the rest - notably both transducer hardware faults -
+// latched until a power cycle. That is not preserved: a fault the operator
+// cannot clear and cannot see the reason for is worse than one that re-trips
+// honestly on the next scan.
+METHOD ResetAll : BOOL]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[stFaults.bPowerFault          := FALSE;
+stFaults.bCabinetFlood        := FALSE;
+stFaults.bPneumaticLow        := FALSE;
+stFaults.bUpstreamOverPress   := FALSE;
+stFaults.bDownstreamOverPress := FALSE;
+stFaults.bPt1Hardware         := FALSE;
+stFaults.bPt2Hardware         := FALSE;
+stFaults.bSpaOverTemp         := FALSE;
+stFaults.bFlowMeterOverTemp   := FALSE;
+stFaults.bExternalOverTemp    := FALSE;
+stFaults.bDownstreamOverTemp  := FALSE;
+stFaults.bPurifierTempReg     := FALSE;
+stFaults.bFlowMeterWarmup     := FALSE;
+stFaults.bExternalWarmup      := FALSE;
+stFaults.bDownstreamWarmup    := FALSE;
+stFaults.bExternalNoTempRise  := FALSE;
+stFaults.bExternalLowAtReady  := FALSE;
+stFaults.bWaterEmpty          := FALSE;
+stFaults.bWaterFill           := FALSE;
+stFaults.bWaterRegulation     := FALSE;
+stFaults.bVesselPurge         := FALSE;
+stFaults.bDownstreamStartHigh := FALSE;
+stFaults.bStartupDiffPress    := FALSE;
+stFaults.bFlowRateError       := FALSE;
+stFaults.bHmiCommLoss         := FALSE;
+stFaults.bAnyFault            := FALSE;
+
+// Filter timers must be cleared too, or a timer already at its preset will
+// re-trip on the very next scan regardless of the current input state.
+tonPneumaticLow(IN := FALSE);
+tonUpstreamHigh(IN := FALSE);
+tonDownstreamHigh(IN := FALSE);
+tonPt1Bad(IN := FALSE);
+tonPt2Bad(IN := FALSE);
+tonSpaOverTemp(IN := FALSE);
+tonFmOverTemp(IN := FALSE);
+tonExtOverTemp(IN := FALSE);
+tonDsOverTemp(IN := FALSE);
+tonWarmup(IN := FALSE);
+tonPurge(IN := FALSE);
+tonDiffPress(IN := FALSE);
+tonWaterFill(IN := FALSE);
+tonWaterReg(IN := FALSE);
+tonWaterEmpty(IN := FALSE);
+tonExtWarmupWindow(IN := FALSE);
+tonExtLowAtReady(IN := FALSE);
+tonFlowRatio(IN := FALSE);
+
+bPurgeRetryUsed     := FALSE;
+bDiffPressRetryUsed := FALSE;
+bExtRiseArmed       := FALSE;
+bExtRiseTested      := FALSE;
+
+eFirstOut := E_FaultId.None;
+ResetAll  := TRUE;]]></ST>
+      </Implementation>
+    </Method>
   </POU>
 </TcPlcObject>

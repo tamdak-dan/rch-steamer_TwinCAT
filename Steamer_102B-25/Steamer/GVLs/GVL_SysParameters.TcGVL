@@ -6,8 +6,8 @@
 VAR_GLOBAL
 	
 	// SV2 pressure relief and closing delay
-		rUpstreamPressureReleived : REAL := 800;	// 800 Torr
-		tSv2CloseDelay 		: TIME := T#5S;
+		rUpstreamPressureReleived 	: REAL := 800;	// 800 Torr
+		tSv2CloseDelay 				: TIME := T#5S;
 	
 	// --- State Machine ------------------------------------------------------
 	
@@ -20,6 +20,7 @@ VAR_GLOBAL
 		rFlowDeadbandPct 	: REAL := 0.10;		// deadband target of steam flow as %
 
 	// ------------------------------------------------------------------------	
+	// --- Function Blocks ----------------------------------------------------
 
 	// FB_WaterFill
 		tDebounceTimer 			: TIME := T#1S;
@@ -67,14 +68,20 @@ VAR_GLOBAL
 	 
 		// --- loop 4: external line heater -> H4 (bang-bang) ---------------------
 		rExtHeaterTempSp		: REAL := 120.0;	// [degC] legacy V1521 = K1200
-	 
-		// shared temperature limit
+		
+	// FB_FaultMonitor
+		rUpstreamMaxPressure	: REAL := 1530; 	// torr
+		rDownstreamMaxPressure	: REAL := 1250;		// torr
+		rPtMininum				: REAL := 50;		// minimum reading --> hardware fault
 		rMaxTemp				: REAL := 150.0;	// [degC]
-		
-
-		
- 	
-	
+ 		rWarmupTemp				: REAL := 30.0;		// degC, minimum temp during warmup
+		rExtTempMinRise			: REAL := 5.0;		// minimum temp to rise without triggering ext fault
+		rExtMinReadyTemp		: REAL := 95.0;		// external heater low limit when steam ready
+		rDsHighStartPressure	: REAL := 1500.0;	// max starting pressure for downstream sensor
+		rP3AbsMax				: REAL := 785.0;	// max atmospheric pressure 
+		rP3AbsMin				: REAL := 575.0;	// min atmospheric pressure
+		rPtMaxVariance			: REAL := 10.0;		// 
+		rMaxFlowDpRatio			: REAL := 0.25;		// rated_flow(×10 SLM) × 0.001 = 250 × 0.001 = 0.25 SLM/Torr
 	
 	
 END_VAR]]></Declaration>

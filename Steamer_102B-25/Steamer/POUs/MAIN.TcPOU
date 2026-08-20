@@ -41,7 +41,26 @@ END_VAR
 fbInputScaling();
 
 // FAULT CHECK
-fbFaultMonitor();
+fbFaultMonitor(
+	stProcess := ,
+	eState := ,
+	bPurgeActive := ,
+	bWaterFillActive := ,
+	bWaterFillRequest := ,
+	bDiffPressActive := ,
+	bDiffPressReached := ,
+	bTempControlActive := ,
+	bColdStart := ,
+	bReadyReached := ,
+	bSteamFlowing := ,
+	bColdEqualisedCheck := ,
+	rPt1NegOffset := ,
+	rPt1PosOffset := ,
+	bWaterEmptyFiltered := ,
+	bWaterCenterFiltered := ,
+	bExternalHeaterOff := ,
+	bHmiHeartbeatOk := 
+	)
 
 //========================= HMI (publish + consume) =======================
 // Run BEFORE the state machine so command pulses are latched this cycle.
@@ -61,7 +80,7 @@ IF fbHmi.bCmdSesOff THEN fbStateMachine.RequestStop(); END_IF
 IF fbHmi.bCmdEnterMaint THEN fbStateMachine.RequestMaintenance(); END_IF
 IF fbHmi.bCmdExitMaint THEN fbStateMachine.RequestExitMaint(); END_IF
 IF fbHmi.bCmdFaultReset THEN
-    //fbFaultMonitor.ResetAll();
+    fbFaultMonitor.ResetAll();
     fbStateMachine.RequestFaultReset();
 END_IF;
 

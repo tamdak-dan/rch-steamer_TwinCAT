@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="E_FaultId" Id="{a1b2c3d4-0009-4a5b-9c8d-e1f200000009}">
+    <Declaration><![CDATA[//=============================================================================
+// E_FaultId
+//-----------------------------------------------------------------------------
+// Identifies WHICH fault tripped first. FB_FaultMonitor latches one of these
+// on the transition from healthy to faulted and holds it until ResetAll().
+//
+// The numeric values are the legacy HMI message-table indices, so the existing
+// message strings on the panel keep working without a translation layer.
+// Where the legacy reused one index for several distinct causes, the causes
+// are split into separate IDs here and the duplicated index is noted.
+//=============================================================================
+TYPE E_FaultId :
+(
+    None                    := 0,
+
+    // --- hardware / utilities -------------------------------------------
+    PowerFault              := 1,
+	CabinetFlood            := 2,
+    PneumaticLow            := 3,
+
+    // --- pressure -------------------------------------------------------
+    UpstreamOverPress       := 11,
+    DownstreamOverPress     := 12,
+    DownstreamStartHigh     := 13,
+    StartupDiffPressTimeout := 14,
+    Pt1Hardware             := 15,
+    Pt2Hardware             := 16,
+
+    // Transducer cross-check failure. Legacy shared index 58 with the
+    // timeout above; split so first-out can tell them apart. Point the HMI
+    // message table at 58 if a distinct string is not wanted.
+    StartupDiffPressXCheck  := 17,
+
+    // --- water ----------------------------------------------------------
+    WaterFill               := 21,
+    WaterRegulation         := 22,
+    WaterEmpty              := 23,
+    VesselPurgeTimeout      := 24,
+
+    // --- temperature: over-limit ----------------------------------------
+    SpaOverTemp             := 31,
+    FlowMeterOverTemp       := 32,
+    ExternalOverTemp        := 33,
+    DownstreamOverTemp      := 34,
+
+    // --- temperature: warm-up failures ----------------------------------
+    SpaWarmupTimeout        := 41,
+    FlowMeterWarmupTimeout  := 42,
+    ExternalWarmupTimeout   := 43,
+    DownstreamWarmupTimeout := 44,
+
+    // Legacy reused index 76 for all three external-line faults. Split so
+    // the operator can tell "TC not bonded to heater" from "line went cold".
+    ExternalNoTempRise      := 51,
+    ExternalLowAtReady      := 52,
+
+    // --- flow -----------------------------------------------------------
+    FlowRateError           := 61,
+
+    // --- new in this system ---------------------------------------------
+    HmiCommLoss             := 300
+) INT;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

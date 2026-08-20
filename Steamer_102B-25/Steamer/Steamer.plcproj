@@ -18,6 +18,9 @@
     <LibraryReferences>{8715065c-181f-4b14-8369-7788f0fdeffb}</LibraryReferences>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DUTs\Enumerations\E_FaultId.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="DUTs\Enumerations\E_HmiMessage.TcDUT">
       <SubType>Code</SubType>
     </Compile>

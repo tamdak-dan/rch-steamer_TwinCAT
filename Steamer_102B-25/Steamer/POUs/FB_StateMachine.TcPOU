@@ -15,7 +15,6 @@ END_VAR
 VAR_OUTPUT
 	// system state
     eState           : E_SystemState := E_SystemState.InitController;
-
     // enable flags for downstream FBs
 	eWaterFillMode 	 : E_WaterFillMode;   	// water fill mode startup/autofill/idle
 	bControlEnable   : BOOL;   				// PID pressure/temp loops may run
@@ -34,19 +33,15 @@ VAR
     bReqExitMaint    : BOOL;
     bReqFault        : BOOL;
     bReqFaultReset   : BOOL;
-
     // --- state entry detection (rising edge of a new state) ---
     eStatePrev       : E_SystemState;
     bEntry           : BOOL;   // TRUE on the first cycle of the current state
-
-
 	// TODO move to fbFaultMonitor and delete from here
     // --- thresholds (seed from GVL_Params at init; defaults from source) ---
     tWarmupTime      : TIME := T#120S;   // legacy "Begin a 120 sec warm up timer for TC3"
     tDiffPressTime   : TIME := T#10M;    // legacy baseline 15 min
     tFillTimeout     : TIME := T#10M;
     tPurgeTimeout    : TIME := T#10M;
-    
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -202,7 +197,7 @@ CASE eState OF
         END_IF
 
     //--------------------------------------------------------------------
-    E_SystemState.Maintenance:      // S7 : manual actuation
+    E_SystemState.Maintenance:      // S80 : manual actuation
     //--------------------------------------------------------------------
         // Outputs handled by FB_OutputHandler via HMI overrides; no auto control.
 		bControlEnable := NOT stFaults.bHmiCommLoss;
@@ -214,11 +209,13 @@ CASE eState OF
 		END_IF
 
     //--------------------------------------------------------------------
-    E_SystemState.Fault:            // S10 : latched fault
+    E_SystemState.Fault:            // S99 : latched fault
     //--------------------------------------------------------------------
         // All auto outputs off. Only an operator reset leaves this state,
         // and only once all latching faults have actually cleared.
-        IF bReqFaultReset AND NOT stFaults.bHmiCommLoss THEN
+        // Operator reset: clear latches, then let the monitor re-evaluate.
+
+		IF bReqFaultReset AND NOT stFaults.bHmiCommLoss THEN
             eState := E_SystemState.InitController;
         END_IF
 

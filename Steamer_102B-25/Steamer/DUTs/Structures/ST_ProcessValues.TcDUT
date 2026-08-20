@@ -28,15 +28,18 @@ STRUCT
     // --- Flow [SLM] ---------------------------------------
     rFlowActual     : REAL;    	// F3 calculated steam flow     
     rFlowSetpoint   : REAL;    	// active flow setpoint         
-    rFlowRated      : REAL;    	// rated max flow               
+    rFlowRated      : REAL;    	// rated max flow    
+	rFlowRatio		: REAL;		// FL_TO_DP23 = F3 / DP23 --> units: SLM per Torr           
 
     // --- Discrete process status --------------------------
-    bWaterHigh		: BOOL;		// water at high limit --> high limit switch on
-	bWaterFull      : BOOL;    	// full water level --> center limit switch on, high off
-    bWaterLow       : BOOL;    	// low water level --> low limit switch on, center/high off
-    bWaterEmpty     : BOOL;    	// empty water level --> low limit switch off
-    bSpaFlushed     : BOOL;    	// SPA flushed / purge complete
-    bExtHeaterOn    : BOOL;    	// external heater enabled      
+    bWaterHigh			: BOOL;		// water at high limit --> high limit switch on
+	bWaterFull      	: BOOL;    	// full water level --> center limit switch on, high off
+    bWaterLow       	: BOOL;    	// low water level --> low limit switch on, center/high off
+    bWaterEmpty     	: BOOL;    	// empty water level --> low limit switch off
+    bSpaFlushed     	: BOOL;    	// SPA flushed / purge complete
+    bExtHeaterOn    	: BOOL;    	// external heater enabled      
+	bPowerFaultSensor 	: BOOL;		// power fault sensor
+	bCabinetFloodSensor	: BOOL;		// cabinet flood sensor
 END_STRUCT
 END_TYPE
 ]]></Declaration>
