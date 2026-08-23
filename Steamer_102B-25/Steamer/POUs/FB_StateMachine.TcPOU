@@ -24,6 +24,7 @@ VAR_OUTPUT
 	bDeliveryEnable	 : BOOL;				// enable steam delivery
     bReady           : BOOL;   				// green Ready: in SteamFlowing, in-band, no faults
     bInStartup       : BOOL;   				// TRUE for any Init* state
+	bColdStart		 : BOOL;				// true if most recent startup was cold
 END_VAR
 VAR
     // --- request flags set by methods, cleared when serviced ---
@@ -64,14 +65,14 @@ bReqFault := FALSE;
 
 //=========================== default enable flags ============================
 // Recomputed every cycle; each state turns on what it needs below.
-eWaterFillMode 	:= E_WaterFillMode.Idle;
-bControlEnable  := FALSE;
-bPurgeEnable    := FALSE;
-bSpaFlushEnable := FALSE;
-bSpaFlushReset  := FALSE;
-bDeliveryEnable := FALSE;
-bReady          := FALSE;
-bInStartup      := FALSE;
+eWaterFillMode 		:= E_WaterFillMode.Idle;
+bControlEnable  	:= FALSE;
+bPurgeEnable    	:= FALSE;
+bSpaFlushEnable 	:= FALSE;
+bSpaFlushReset  	:= FALSE;
+bDeliveryEnable 	:= FALSE;
+bReady          	:= FALSE;
+bInStartup      	:= FALSE;
 
 //================================ STATE MACHINE ==============================
 CASE eState OF
@@ -104,8 +105,10 @@ CASE eState OF
         bInStartup := TRUE;
         IF _IsSpaWarm() AND (_FlowPercent() > GVL_SysParameters.rHotRestartFlowPct) THEN
             eState := E_SystemState.SteamFlowing;
+			bColdStart := FALSE;
 		ELSE
             eState := E_SystemState.FillWater;
+			bColdStart := TRUE;
         END_IF
 
     //--------------------------------------------------------------------
@@ -230,8 +233,7 @@ bReqStart      := FALSE;
 bReqStop       := FALSE;
 bReqMaint      := FALSE;
 bReqExitMaint  := FALSE;
-bReqFaultReset := FALSE;
-]]></ST>
+bReqFaultReset := FALSE;]]></ST>
     </Implementation>
     <Method Name="_DiffPressEstablished" Id="{b1f7aed4-a886-4a7b-bad9-cc81f3fbcb42}">
       <Declaration><![CDATA[// TODO: real dP target from setpoints/params (legacy "Purge dP"/INI_SP).

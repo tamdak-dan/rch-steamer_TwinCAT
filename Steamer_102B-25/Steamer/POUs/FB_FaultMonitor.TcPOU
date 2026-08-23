@@ -11,18 +11,13 @@ VAR_INPUT
 	eFaultId			: E_FaultId;
     bPurgeActive        : BOOL;   // TRUE while the purge sequence runs
     bWaterFillActive    : BOOL;   // TRUE while a fill is being commanded
-    bWaterFillRequest   : BOOL;   // level control asking for inlet water
+    //bWaterFillRequest   : BOOL;   // for water regulation fault --> currently off
     bDiffPressActive    : BOOL;   // TRUE while differential pressure is being established
     bDiffPressReached   : BOOL;   // upstream pressure reached target setpoint
     bTempControlActive  : BOOL;   // TRUE while the heater loops are enabled
     bColdStart          : BOOL;   // one-shot: cold start, arm the temperature-rise check
     bReadyReached       : BOOL;   // steam-ready has been achieved at least once
     bSteamFlowing       : BOOL;   // production state
-    bColdEqualisedCheck : BOOL;   // TRUE for the cold, pressure-equalised transducer cross-check
-
-    // --- transducer cross-check results (from FB_InputScaling) ----------
-    rPt1NegOffset       : REAL;   // computed downward correction on upstream transducer
-    rPt1PosOffset       : REAL;   // computed upward correction on upstream transducer
 
     // --- filtered level switches ----------------------------------------
     bWaterEmptyFiltered : BOOL;   // filtered lower limit switch: TRUE = vessel empty
@@ -261,12 +256,12 @@ END_IF
 // the whole check period. Distinct from the fill timeout - here the level does
 // respond, but never satisfies the loop, which points at a leak or a drain
 // valve that is not sealing.
-tonWaterReg(IN := bWaterFillRequest,
+(* tonWaterReg(IN := bWaterFillRequest,
             PT := tWater_15m);
 IF tonWaterReg.Q THEN
     stFaults.bWaterRegulationFault := TRUE;
     _Report(E_FaultId.WaterRegulation);
-END_IF
+END_IF *)
 
 //=============================================================================
 // 5. PURGE WATCHDOG - retry once, then fault
@@ -301,11 +296,10 @@ END_IF
 // equalised to atmosphere - at that point both transducers must agree, and
 // must agree with atmospheric pressure. Any disagreement means one of them has
 // drifted, and every downstream flow calculation would inherit the error.
-IF bColdEqualisedCheck THEN
+IF eState = E_SystemState.FillWater THEN
     IF (stProcess.rPt2Downstream > GVL_SysParameters.rP3AbsMax)
        OR (stProcess.rPt2Downstream < GVL_SysParameters.rP3AbsMin)
-       OR (rPt1NegOffset > GVL_SysParameters.rPtMaxVariance)
-       OR (rPt1PosOffset > GVL_SysParameters.rPtMaxVariance) THEN
+	   OR (ABS(stProcess.rDiffPressureOffset) > GVL_SysParameters.rPtMaxVariance) THEN
         stFaults.bStartDpHardwareFault := TRUE;
         _Report(E_FaultId.StartupDiffPressXCheck);
     END_IF

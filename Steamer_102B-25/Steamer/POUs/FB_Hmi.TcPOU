@@ -20,6 +20,7 @@ VAR_OUTPUT
     bCmdFaultAck    	: BOOL;
     bCmdEnterMaint  	: BOOL;
     bCmdExitMaint   	: BOOL;
+	bCmdExtHeaterOn		: BOOL;
     bSetpointsChanged 	: BOOL;
 	
 	// heartbeat supervision	
@@ -59,18 +60,19 @@ bFirstCycle := FALSE;
 // repeat-fire.
 bCmdSesOn      := GVL_HMI.stHmiCommand.bSesOn;
 bCmdSesOff     := GVL_HMI.stHmiCommand.bSesOff;
-bCmdDelivery   := ;
+bCmdDelivery   := GVL_HMI.stHmiCommand.bSteamDeliveryOn;
 bCmdFaultReset := GVL_HMI.stHmiCommand.bFaultReset;
 bCmdFaultAck   := GVL_HMI.stHmiCommand.bFaultAck;
 bCmdEnterMaint := GVL_HMI.stHmiCommand.bEnterMaint;
 bCmdExitMaint  := GVL_HMI.stHmiCommand.bExitMaint;
 
-GVL_HMI.stHmiCommand.bSesOn      := FALSE;
-GVL_HMI.stHmiCommand.bSesOff     := FALSE;
-GVL_HMI.stHmiCommand.bFaultReset := FALSE;
-GVL_HMI.stHmiCommand.bFaultAck   := FALSE;
-GVL_HMI.stHmiCommand.bEnterMaint := FALSE;
-GVL_HMI.stHmiCommand.bExitMaint  := FALSE;
+GVL_HMI.stHmiCommand.bSesOn      		:= FALSE;
+GVL_HMI.stHmiCommand.bSesOff     		:= FALSE;
+GVL_HMI.stHmiCommand.bSteamDeliveryOn 	:= FALSE;
+GVL_HMI.stHmiCommand.bFaultReset 		:= FALSE;
+GVL_HMI.stHmiCommand.bFaultAck   		:= FALSE;
+GVL_HMI.stHmiCommand.bEnterMaint 		:= FALSE;
+GVL_HMI.stHmiCommand.bExitMaint  		:= FALSE;
 
 // Safety interlock: ignore SES ON during comm-lost or active fault display;
 // the state machine makes the final call, this is belt-and-braces.

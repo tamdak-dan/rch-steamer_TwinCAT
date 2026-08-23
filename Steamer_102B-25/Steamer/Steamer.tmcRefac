@@ -26,5 +26,10 @@
       <From>tExtRiseDelay</From>
       <To>tExtRiseTimeout</To>
     </RenamedSymbol>
+    <RenamedSymbol>
+      <Type guid="8f208da5-e654-4ab9-8425-89789dddd507">FB_Hmi</Type>
+      <From>bCmdExtHeater</From>
+      <To>bCmdExtHeaterOn</To>
+    </RenamedSymbol>
   </Renames>
 </Refactors>

@@ -42,25 +42,22 @@ fbInputScaling();
 
 // FAULT CHECK
 fbFaultMonitor(
-	stProcess := ,
-	eState := ,
-	bPurgeActive := ,
-	bWaterFillActive := ,
-	bWaterFillRequest := ,
-	bDiffPressActive := ,
-	bDiffPressReached := ,
-	bTempControlActive := ,
-	bColdStart := ,
-	bReadyReached := ,
-	bSteamFlowing := ,
-	bColdEqualisedCheck := ,
-	rPt1NegOffset := ,
-	rPt1PosOffset := ,
-	bWaterEmptyFiltered := ,
-	bWaterCenterFiltered := ,
-	bExternalHeaterOff := ,
-	bHmiHeartbeatOk := 
-	)
+	stProcess := fbInputScaling.stProcessValues,
+	eState := fbStateMachine.eState,
+	bPurgeActive := fbStateMachine.bPurgeEnable,
+	bWaterFillActive := (fbWaterFill.eMode = E_WaterFillMode.RunningAutofill) 
+						 OR (fbWaterFill.eMode = E_WaterFillMode.StartupFill),
+	bDiffPressActive := fbStateMachine.bControlEnable,
+	bDiffPressReached := fbPressureControl.bDiffPressReached,
+	bTempControlActive := fbStateMachine.bControlEnable,
+	bColdStart := fbStateMachine.bColdStart,
+	bReadyReached := fbStateMachine.bReady,
+	bSteamFlowing := fbStateMachine.bDeliveryEnable,
+	bWaterEmptyFiltered := fbWaterFill.bEmptyFiltered,
+	bWaterCenterFiltered := fbWaterFill.bCenterFiltered,
+	bExternalHeaterOff := NOT fbHmi.bCmdExtHeaterOn,
+	bHmiHeartbeatOk := NOT fbHmi.bHmiCommLoss
+	);
 
 //========================= HMI (publish + consume) =======================
 // Run BEFORE the state machine so command pulses are latched this cycle.
@@ -111,7 +108,6 @@ fbWaterFill(
 	bEmptySwitch := GVL_IO.biLS3_WaterEmpty,
 	bAutofillEnable := GVL_HMI.stHmiCommand.bAutofillEnable,
 	bFillComplete => GVL_HMI.stHmiStatus.bFillComplete,
-	bWaterFillFault => GVL_HMI.stHmiStatus.stFaults.bWaterFill,
 	bCenterFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterFull,
 	bEmptyFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterEmpty
 );
@@ -120,7 +116,7 @@ fbPurge(
 	bEnable :=fbStateMachine.bPurgeEnable,
 	rUpstreamPress := fbInputScaling.stProcessValues.rPt1Upstream,
 	bEmptyFiltered := fbWaterFill.bEmptyFiltered,
-	bPurgeTimeout => GVL_HMI.stHmiStatus.stFaults.bVesselPurge
+	bPurgeTimeout => GVL_HMI.stHmiStatus.stFaults.bPurgeTimeout
 );
 		
 fbPressureControl(

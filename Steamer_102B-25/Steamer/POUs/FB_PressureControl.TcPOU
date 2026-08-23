@@ -143,9 +143,9 @@ ELSIF NOT bFlushed THEN
 ELSE
     // Normal running: hold PT1 a target differential above PT2.
 	rTargetDiffPressure := _TargetDiffPressure(rFlowSp := GVL_HMI.stHmiSetpoints.rSetFlow,
-												rP1 := stProcess.rPt1Upstream,
-												rP2 := stProcess.rPt2Downstream,
-												rP3 := stProcess.rAtmPressure);
+												   rP1 := stProcess.rPt1Upstream,
+												   rP2 := stProcess.rPt2Downstream,
+												   rP3 := stProcess.rAtmPressure);
 	
     rBoilerSpTarget := stProcess.rPt2Downstream + rTargetDiffPressure + GVL_SysParameters.rPspGainOffset;
 END_IF

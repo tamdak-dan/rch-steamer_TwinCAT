@@ -40,7 +40,6 @@ END_VAR
 VAR_OUTPUT
     qFillValve       : BOOL;              // -> FB_OutputHandler -> SV4
     bFillComplete    : BOOL;              // startup fill done (LS1 covered + dwell)
-    bWaterFillFault  : BOOL;              // startup fill timeout (legacy B1600.15)
     bCenterFiltered  : BOOL;              // exposed filtered LS1 (HMI / diagnostics)
     bEmptyFiltered   : BOOL;              // exposed filtered LS3
 END_VAR
@@ -52,11 +51,9 @@ VAR
     tonEmptyOff      : TON;
 
     // ---- startup fill (K8) -------------------------------------------------
-    tonFillFault     : TON; // 
     tonFillDwell     : TON; // fixed confirm (tFillConfirm = 5 s)
 
     // ---- running autofill (K7) ---------------------------------------------
-	tonAutoFillFault : TON; // alarm for detecting overfill during auto
     tonAutoFillDwell : TON;	// legacy T63, preset tWaterFillCheck (V1555)
 	bAutoFillActive	 : BOOL;
 
@@ -105,26 +102,15 @@ CASE eMode OF
         IF NOT bCenterFiltered THEN
             // --- still filling: valve open, fault timer running ---
             qFillValve := TRUE;
-            tonFillFault(IN := TRUE, PT := GVL_SysParameters.tStartupFillTimeout);
-            tonFillDwell(IN := FALSE);                 // not at level; hold dwell reset
-            IF tonFillFault.Q THEN
-                bWaterFillFault := TRUE;
-            END_IF
         ELSE
             // --- LS1 covered: CLOSE valve immediately, run confirm dwell ---
             // (legacy rung 502: RST Y4 on the same rung TMR T24 starts)
             qFillValve := FALSE;
-            tonFillFault(IN := FALSE);
-            tonFillDwell(IN := TRUE, PT := GVL_SysParameters.tFillConfirmDelay);
-            IF tonFillDwell.Q THEN
-                bFillComplete := TRUE;
-            END_IF
         END_IF
 
     //-- RUNNING AUTOFILL --------------------------------------
     E_WaterFillMode.RunningAutofill:
         IF bModeEntry THEN
-            tonAutoFillFault(IN := FALSE);
 			tonAutoFillDwell(IN := FALSE);
         END_IF
 
@@ -134,24 +120,18 @@ CASE eMode OF
 		ELSE
 			IF NOT bCenterFiltered THEN
 				qFillValve := TRUE;
-				tonAutoFillFault(IN := TRUE, PT := GVL_SysParameters.tAutoFillTimeout);
-				IF tonAutoFillFault.Q THEN
-					bWaterFillFault := TRUE;
-				END_IF
 				tonAutoFillDwell(IN := FALSE);
 			ELSE
 				tonAutoFillDwell(IN := TRUE, PT := GVL_SysParameters.tAutoFillDelay);
 				IF tonAutoFillDwell.Q THEN
 					qFillValve := FALSE;
 				END_IF
-				tonAutoFillFault(IN := FALSE);
 			END_IF
         END_IF
 
     //-- IDLE --------------------------------------------------------------
     ELSE
         qFillValve := FALSE;
-        tonFillFault(IN := FALSE);
         tonFillDwell(IN := FALSE);
 END_CASE
 ]]></ST>
