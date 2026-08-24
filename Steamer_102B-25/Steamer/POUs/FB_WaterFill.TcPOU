@@ -94,9 +94,7 @@ CASE eMode OF
     E_WaterFillMode.StartupFill:
         IF bModeEntry THEN
             bFillComplete   := FALSE;
-            bWaterFillFault := FALSE;
             tonFillDwell(IN := FALSE);
-            tonFillFault(IN := FALSE);
         END_IF
 
         IF NOT bCenterFiltered THEN

@@ -83,7 +83,7 @@ END_VAR]]></Declaration>
       <ST><![CDATA[//--- Power fault. No filter: this is a hard utility loss. -------------------
 IF stProcess.bPowerFaultSensor THEN
     stFaults.bPowerFault := TRUE;
-    _Report(eFaultId.PowerFault);
+    _Report(E_FaultId.PowerFault);
 END_IF
 
 //--- Cabinet flood. Sensor is normally closed, so LOSS of the input is the
@@ -355,18 +355,28 @@ bAnyFaultPrev     := stFaults.bAnyFault;]]></ST>
 // instead of the actual trigger.
 METHOD PRIVATE _Report
 VAR_INPUT
-    eErrorID	: E_FaultId;
+    eErrorID		: E_FaultId;
+	
 END_VAR
 
 VAR
-	i			: DINT;
+	i				: DINT;
+	sErrorString	: STRING(30);
+	fbGetSystemTime	: GETSYSTEMTIME;
+	fileTime		: T_FILETIME;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF aActiveFaults[1, UPPER_BOUND(aActiveFaults, 2)] = '' THEN
+	sErrorString := TO_STRING(eErrorID);
 	FOR i:=LOWER_BOUND(aActiveFaults, 2) TO UPPER_BOUND(aActiveFaults, 2) DO
-		IF aActiveFaults[1,i] = '' THEN
-			aActiveFaults[1,i] := TO_STRING(eErrorID);
-			aActiveFaults[2,i] := DT_TO_STRING(FILETIME_TO_DT(F_GetSystemTime));
+		IF aActiveFaults[1,i] = sErrorString THEN
+			EXIT;
+		ELSIF aActiveFaults[1,i] = '' THEN
+			// store error
+			aActiveFaults[1,i] := sErrorString;
+			// grab and store timestamp
+			fbGetSystemTime(timeLoDW=>fileTime.dwLowDateTime, timeHiDW=>fileTime.dwHighDateTime );
+			aActiveFaults[2,i] := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( fileTime ) );
 			EXIT;
 		END_IF
 	END_FOR
@@ -404,34 +414,38 @@ InhibitSensorHwEval := TRUE;]]></ST>
 // latched until a power cycle. That is not preserved: a fault the operator
 // cannot clear and cannot see the reason for is worse than one that re-trips
 // honestly on the next scan.
-METHOD ResetAll : BOOL]]></Declaration>
+METHOD ResetAll : BOOL
+VAR
+	i	: DINT;
+END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[stFaults.bPowerFault          := FALSE;
-stFaults.bCabinetFlood        := FALSE;
-stFaults.bPneumaticLow        := FALSE;
-stFaults.bUpstreamOverPress   := FALSE;
-stFaults.bDownstreamOverPress := FALSE;
-stFaults.bPt1Hardware         := FALSE;
-stFaults.bPt2Hardware         := FALSE;
-stFaults.bSpaOverTemp         := FALSE;
-stFaults.bFlowMeterOverTemp   := FALSE;
-stFaults.bExternalOverTemp    := FALSE;
-stFaults.bDownstreamOverTemp  := FALSE;
-stFaults.bPurifierTempReg     := FALSE;
-stFaults.bFlowMeterWarmup     := FALSE;
-stFaults.bExternalWarmup      := FALSE;
-stFaults.bDownstreamWarmup    := FALSE;
-stFaults.bExternalNoTempRise  := FALSE;
-stFaults.bExternalLowAtReady  := FALSE;
-stFaults.bWaterEmpty          := FALSE;
-stFaults.bWaterFill           := FALSE;
-stFaults.bWaterRegulation     := FALSE;
-stFaults.bVesselPurge         := FALSE;
-stFaults.bDownstreamStartHigh := FALSE;
-stFaults.bStartupDiffPress    := FALSE;
-stFaults.bFlowRateError       := FALSE;
-stFaults.bHmiCommLoss         := FALSE;
-stFaults.bAnyFault            := FALSE;
+        <ST><![CDATA[stFaults.bAnyFault					:= FALSE;
+stFaults.bPowerFault          		:= FALSE;
+stFaults.bCabinetFlood        		:= FALSE;
+stFaults.bPneumaticLow        		:= FALSE;
+stFaults.bUpstreamOverPress   		:= FALSE;
+stFaults.bDownstreamOverPress 		:= FALSE;
+stFaults.bPt1HardwareFault      	:= FALSE;
+stFaults.bPt2HardwareFault      	:= FALSE;
+stFaults.bSpaOverTemp				:= FALSE;
+stFaults.bFlowmeterOverTemp			:= FALSE;
+stFaults.bExtOverTemp				:= FALSE;
+stFaults.bDownstreamOverTemp		:= FALSE;
+stFaults.bSpaWarmupTimeout			:= FALSE;
+stFaults.bFlowmeterWarmupTimeout	:= FALSE;
+stFaults.bExtWarmupTimeout			:= FALSE;
+stFaults.bDownstreamWarmupTimeout	:= FALSE;
+stFaults.bExtTempDecoupled			:= FALSE;
+stFaults.bExtTempLow				:= FALSE;
+stFaults.bWaterEmpty          		:= FALSE;
+stFaults.bWaterFillTimeout          := FALSE;
+stFaults.bWaterDrainTimeout         := FALSE;
+stFaults.bWaterRegulationFault		:= FALSE;
+stFaults.bPurgeTimeout				:= FALSE;
+stFaults.bDownstreamStartOverPress	:= FALSE;
+stFaults.bStartDpTimeout			:= FALSE;
+stFaults.bStartDpHardwareFault		:= FALSE;
+stFaults.bFlowFault					:= FALSE;
 
 // Filter timers must be cleared too, or a timer already at its preset will
 // re-trip on the very next scan regardless of the current input state.
@@ -454,12 +468,14 @@ tonExtWarmupWindow(IN := FALSE);
 tonExtLowAtReady(IN := FALSE);
 tonFlowRatio(IN := FALSE);
 
-bPurgeRetryUsed     := FALSE;
-bDiffPressRetryUsed := FALSE;
 bExtRiseArmed       := FALSE;
 bExtRiseTested      := FALSE;
 
-eFirstOut := E_FaultId.None;
+FOR i:=LOWER_BOUND(aActiveFaults, 2) TO UPPER_BOUND(aActiveFaults, 2) DO
+	aActiveFaults[1,i] := '';
+	aActiveFaults[2,i] := '';
+END_FOR
+
 ResetAll  := TRUE;]]></ST>
       </Implementation>
     </Method>

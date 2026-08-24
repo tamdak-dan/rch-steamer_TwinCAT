@@ -62,13 +62,12 @@ fbFaultMonitor(
 //========================= HMI (publish + consume) =======================
 // Run BEFORE the state machine so command pulses are latched this cycle.
 // FB_Hmi publishes GVL_HMI.stStatus and clears consumed command bits.
-(* fbHmi(eState        := fbStateMachine.eState,
-      stProcess     := GVL_Process.stValues,
-      stFaults      := fbFaultMonitor.stFaults,
-      bReady        := fbStateMachine.bReady,
-      arPidOutput   := fbPressureControl.arOutputPct,
-      arValveActual := fbOutputs.arValveState,
-      stLimits      := stSetpointLimits); *)
+fbHmi(
+	eState      := fbStateMachine.eState,
+    stProcess   := fbInputScaling.stProcessValues,
+	stFaults	:= fbFaultMonitor.stFaults,
+	bReady 		:= fbStateMachine.bReady
+);
 	  
 //========================= STATE MACHINE =================================
 // Consume the one-cycle HMI command pulses, then run the CASE.

@@ -12,6 +12,9 @@
 // Where the legacy reused one index for several distinct causes, the causes
 // are split into separate IDs here and the duplicated index is noted.
 //=============================================================================
+{attribute 'qualified_only'}
+{attribute 'strict'}
+{attribute 'to_string'}
 TYPE E_FaultId :
 (
     None                    := 0,
