@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <POU Name="FB_FaultMonitor" Id="{1f8b8785-9781-4f77-85e6-df1d5973ba68}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_FaultMonitor
 VAR_INPUT
@@ -475,6 +475,8 @@ FOR i:=LOWER_BOUND(aActiveFaults, 2) TO UPPER_BOUND(aActiveFaults, 2) DO
 	aActiveFaults[1,i] := '';
 	aActiveFaults[2,i] := '';
 END_FOR
+
+InhibitSensorHwEval(FALSE);
 
 ResetAll  := TRUE;]]></ST>
       </Implementation>

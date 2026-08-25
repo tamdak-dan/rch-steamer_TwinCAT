@@ -9,7 +9,7 @@
     <WriteProductVersion>true</WriteProductVersion>
     <GenerateTpy>false</GenerateTpy>
     <Name>Steamer</Name>
-    <ProgramVersion>3.1.4026.24</ProgramVersion>
+    <ProgramVersion>3.1.4026.25</ProgramVersion>
     <Application>{41e0896a-0bbf-4909-9762-2a52b81d9898}</Application>
     <TypeSystem>{64b15784-cd68-46d4-9751-eb14c2f8baa2}</TypeSystem>
     <Implicit_Task_Info>{197933af-8a8a-40f6-be12-3dd3c4c23624}</Implicit_Task_Info>
@@ -65,7 +65,7 @@
     <Compile Include="POUs\FB_Hmi.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\FB_InputScaling.TcPOU">
+    <Compile Include="POUs\FB_ProcessCalcs.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\FB_OutputHandler.TcPOU">

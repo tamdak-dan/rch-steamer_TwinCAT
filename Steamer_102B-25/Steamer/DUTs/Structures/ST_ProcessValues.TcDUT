@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <DUT Name="ST_ProcessValues" Id="{a1b2c3d4-0002-4a5b-9c8d-e1f200000002}">
     <Declaration><![CDATA[//=============================================================================
 // ST_ProcessValues
@@ -19,29 +19,27 @@ STRUCT
     rDiffPressure   	: REAL;    	// PT-1 - PT-2 differential
 	rDiffPressureOffset	: REAL;		// pt1-pt2 differential when equalized
 	rAtmPressure		: REAL;		// atmospheric pressure - computed
-	
 
     // --- Temperatures [degC] ------------------------------
-    rTc1Spa         : REAL;    	// TC1 SPA temperature
-    rTc2FlowMeter   : REAL;    	// TC2 flow meter temperature
-    rTc3External    : REAL;    	// TC3 external heater temperature
-    rTc4Delivery    : REAL;    	// TC4 delivery line temperature
+    rTc1Spa         	: REAL;    	// TC1 SPA temperature
+    rTc2FlowMeter   	: REAL;    	// TC2 flow meter temperature
+    rTc3External    	: REAL;    	// TC3 external heater temperature
+    rTc4Delivery    	: REAL;    	// TC4 delivery line temperature
 
     // --- Flow [SLM] ---------------------------------------
-    rFlowActual     : REAL;    	// F3 calculated steam flow     
-    rFlowSetpoint   : REAL;    	// active flow setpoint         
-    rFlowRated      : REAL;    	// rated max flow    
-	rFlowRatio		: REAL;		// FL_TO_DP23 = F3 / DP23 --> units: SLM per Torr           
+    rFlowActual     	: REAL;    	// F3 calculated steam flow     
+    rFlowSetpoint   	: REAL;    	// active flow setpoint         
+    rFlowRated      	: REAL;    	// rated max flow    
+	rFlowRatio			: REAL;		// FL_TO_DP23 = F3 / DP23 --> units: SLM per Torr           
 
     // --- Discrete process status --------------------------
     bWaterHigh			: BOOL;		// water at high limit --> high limit switch on
 	bWaterFull      	: BOOL;    	// full water level --> center limit switch on, high off
     bWaterLow       	: BOOL;    	// low water level --> low limit switch on, center/high off
-    bWaterEmpty     	: BOOL;    	// empty water level --> low limit switch off
-    bSpaFlushed     	: BOOL;    	// SPA flushed / purge complete
-    bExtHeaterOn    	: BOOL;    	// external heater enabled      
+    bWaterEmpty     	: BOOL;    	// empty water level --> low limit switch off    
 	bPowerFaultSensor 	: BOOL;		// power fault sensor
 	bCabinetFloodSensor	: BOOL;		// cabinet flood sensor
+	
 END_STRUCT
 END_TYPE
 ]]></Declaration>

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <POU Name="MAIN" Id="{f6813ce8-0276-401c-9fea-66add7e7619a}" SpecialFunc="None">
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
@@ -11,7 +11,7 @@ VAR
 	eSystemState		: E_SystemState;
 
 	// function blocks
-	fbInputScaling		: FB_InputScaling;
+	fbProcessCalcs		: FB_ProcessCalcs;
 	fbFaultMonitor 		: FB_FaultMonitor;
 	fbHmi 				: FB_Hmi;
 	fbPressureControl 	: FB_PressureControl;
@@ -38,11 +38,11 @@ END_VAR
       <ST><![CDATA[//========================= FB CALLS =====================================
 
 // SCALE INPUTS
-fbInputScaling();
+fbProcessCalcs();
 
 // FAULT CHECK
 fbFaultMonitor(
-	stProcess := fbInputScaling.stProcessValues,
+	stProcess := fbProcessCalcs.stProcessValues,
 	eState := fbStateMachine.eState,
 	bPurgeActive := fbStateMachine.bPurgeEnable,
 	bWaterFillActive := (fbWaterFill.eMode = E_WaterFillMode.RunningAutofill) 
@@ -64,7 +64,7 @@ fbFaultMonitor(
 // FB_Hmi publishes GVL_HMI.stStatus and clears consumed command bits.
 fbHmi(
 	eState      := fbStateMachine.eState,
-    stProcess   := fbInputScaling.stProcessValues,
+    stProcess   := fbProcessCalcs.stProcessValues,
 	stFaults	:= fbFaultMonitor.stFaults,
 	bReady 		:= fbStateMachine.bReady
 );
@@ -81,18 +81,19 @@ IF fbHmi.bCmdFaultReset THEN
 END_IF;
 
 // Latch fault -> force state machine into Fault (only auto-clears via reset).
-(* IF fbFaultMonitor.bAnyLatchingFault THEN
+IF fbFaultMonitor.bAnyLatchingFault THEN
     fbStateMachine.RequestFault();
-END_IF *)
+	fbFaultMonitor.InhibitSensorHwEval(TRUE);
+END_IF
 
 fbStateMachine(
 	stFaults := GVL_HMI.stHmiStatus.stFaults,
 	stHmiSetpoints := GVL_HMI.stHmiSetpoints,
-	stProcessValues := fbInputScaling.stProcessValues,
+	stProcessValues := fbProcessCalcs.stProcessValues,
 	bDeliveryCmd := fbHmi.bCmdDelivery,
 	bFillComplete := fbWaterFill.bFillComplete,
 	bPurgeComplete := fbPurge.bPurgeComplete,
-	rSpaTemp := fbInputScaling.stProcessValues.rTc1Spa,
+	rSpaTemp := fbProcessCalcs.stProcessValues.rTc1Spa,
 	bSpaFlushed := fbSpaFlush.bSpaFlushed,
 	eState => eSystemState
 );
@@ -104,7 +105,7 @@ fbStateMachine(
 fbWaterFill(
 	eMode := fbStateMachine.eWaterFillMode,
 	bCenterSwitch := GVL_IO.biLS1_WaterMidLevel,
-	bEmptySwitch := GVL_IO.biLS3_WaterEmpty,
+	bEmptySwitch := GVL_IO.biLS3_WaterLowLevel,
 	bAutofillEnable := GVL_HMI.stHmiCommand.bAutofillEnable,
 	bFillComplete => GVL_HMI.stHmiStatus.bFillComplete,
 	bCenterFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterFull,
@@ -113,7 +114,7 @@ fbWaterFill(
 
 fbPurge(
 	bEnable :=fbStateMachine.bPurgeEnable,
-	rUpstreamPress := fbInputScaling.stProcessValues.rPt1Upstream,
+	rUpstreamPress := fbProcessCalcs.stProcessValues.rPt1Upstream,
 	bEmptyFiltered := fbWaterFill.bEmptyFiltered,
 	bPurgeTimeout => GVL_HMI.stHmiStatus.stFaults.bPurgeTimeout
 );
@@ -124,15 +125,17 @@ fbPressureControl(
 	bDpControlOff := GVL_HMI.stHmiCommand.bDpControlOff,
 	bTempControlOff := GVL_HMI.stHmiCommand.bTempControlOff,
 	bExtHeaterEnable := GVL_HMI.stHmiCommand.bExtHeaterEnable,
-	stProcess := fbInputScaling.stProcessValues,
-	stSetpoints := GVL_HMI.stHmiSetpoints 
+	stProcess := fbProcessCalcs.stProcessValues,
+	stSetpoints := GVL_HMI.stHmiSetpoints ,
+	bFlushed := fbSpaFlush.bSpaFlushed
 );
 
 fbSpaFlush(
 	bEnable := fbStateMachine.bSpaFlushEnable,
 	bReset := fbStateMachine.bSpaFlushReset,
-	rUpstreamPress := fbInputScaling.stProcessValues.rPt1Upstream,
-	rAtmPressure := fbInputScaling.stProcessValues.rAtmPressure);
+	rUpstreamPress := fbProcessCalcs.stProcessValues.rPt1Upstream,
+	rAtmPressure := fbProcessCalcs.stProcessValues.rAtmPressure
+);
 	
 
 
@@ -149,7 +152,7 @@ fbOutputHandler(
 	bFmHeater := fbPressureControl.qH3_FlowmeterHeater,
 	bExtHeater := fbPressureControl.qH4_ExternalHeater,
 	arValveOverride := GVL_HMI.stHmiCommand.aValveCmd,
-	stProcess := fbInputScaling.stProcessValues
+	stProcess := fbProcessCalcs.stProcessValues
 );]]></ST>
     </Implementation>
   </POU>
