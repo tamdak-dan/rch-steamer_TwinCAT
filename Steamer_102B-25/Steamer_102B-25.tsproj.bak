@@ -47,15 +47,11 @@
 		</System>
 		<Plc>
 			<Project GUID="{0620E3FE-F520-43EC-B6C2-27AFBA942A9A}" Name="Steamer" PrjFilePath="Steamer\Steamer.plcproj" TmcFilePath="Steamer\Steamer.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{75E39E84-310B-2A24-9DE2-97F5AA55BC3A}" TmcPath="Steamer\Steamer.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{BAE445FA-E66A-3ED9-7516-18D6FAF63E45}" TmcPath="Steamer\Steamer.tmc">
 					<Name>Steamer Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
 						<Name>PlcTask Outputs</Name>
-						<Var>
-							<Name>GVL_IO.bOutput_1</Name>
-							<Type>BOOL</Type>
-						</Var>
 						<Var>
 							<Name>GVL_IO.boSV1_DrainValve</Name>
 							<Comment><![CDATA[ binary outputs       	]]></Comment>
@@ -100,11 +96,6 @@
 					</Vars>
 					<Vars VarGrpType="1">
 						<Name>PlcTask Inputs</Name>
-						<Var>
-							<Name>GVL_IO.nTempSensor</Name>
-							<Comment><![CDATA[ temp/testing]]></Comment>
-							<Type>INT</Type>
-						</Var>
 						<Var>
 							<Name>GVL_IO.biPowerFault</Name>
 							<Comment><![CDATA[ binary inputs]]></Comment>
@@ -693,12 +684,30 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 		<OwnerA Name="TIPC^Steamer^Steamer Instance">
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 11 (EL3052)">
 				<Link VarA="PlcTask Inputs^GVL_IO.aiPT1_UpstreamPressure" VarB="AI Standard Channel 1^Value"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.aiPT2_DownstreamPressure" VarB="AI Standard Channel 2^Value"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 2 (EL1008)">
+				<Link VarA="PlcTask Inputs^GVL_IO.biLS1_WaterMidLevel" VarB="Channel 3^Input"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.biLS2_WaterHighLevel" VarB="Channel 4^Input"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.biLS3_WaterLowLevel" VarB="Channel 5^Input"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.biPowerFault" VarB="Channel 1^Input"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.biTankFloodFault" VarB="Channel 2^Input"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 3 (EL2008)">
-				<Link VarA="PlcTask Outputs^GVL_IO.bOutput_1" VarB="Channel 1^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boH1_UpstreamHeater" VarB="Channel 5^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boH2_SpaHeater" VarB="Channel 6^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boH3_FlowmeterHeater" VarB="Channel 7^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boH4_ExternalHeater" VarB="Channel 8^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boSV1_DrainValve" VarB="Channel 1^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boSV2_SpaValve" VarB="Channel 2^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boSV3_DeliveryValve" VarB="Channel 3^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boSV4_WaterInletValve" VarB="Channel 4^Output"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 5 (EL3314)">
-				<Link VarA="PlcTask Inputs^GVL_IO.nTempSensor" VarB="TC Inputs Channel 1^Value"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.aiTC1_SpaTemp" VarB="TC Inputs Channel 1^Value"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.aiTC2_FlometerTemp" VarB="TC Inputs Channel 2^Value"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.aiTC3_ExternalTemp" VarB="TC Inputs Channel 3^Value"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.aiTC4_DeliveryTemp" VarB="TC Inputs Channel 4^Value"/>
 			</OwnerB>
 		</OwnerA>
 	</Mappings>

@@ -208,6 +208,12 @@ ELSE
     qH1_UpstreamHeater := RunPwm(nLoop    := 1,
                                  rDutyPct := arOutputPct[1],
                                  tPeriod  := tPwmPeriod1);
+
+    // hard over-temperature cut. FB_FaultMonitor will also trip on this, 
+	// but the heater should not wait for the state machine to react.						 
+	IF stProcess.rPt1Upstream >= GVL_SysParameters.rUpstreamMaxPressure THEN 
+		qH1_UpstreamHeater := FALSE; 
+	END_IF
 END_IF
 
 //============================================================================
@@ -232,9 +238,8 @@ ELSE
                             rDutyPct := arOutputPct[2],
                             tPeriod  := GVL_SysParameters.tPid2PwmPeriod);
 
-    // ADDED (no legacy equivalent): hard over-temperature cut. FB_FaultMonitor
-    // will also trip on this, but the heater should not wait for the state
-    // machine to react.
+    // hard over-temperature cut. FB_FaultMonitor will also trip on this, 
+	// but the heater should not wait for the state machine to react.
     IF stProcess.rTc1Spa >= GVL_SysParameters.rMaxTemp THEN
         qH2_SpaHeater := FALSE;
     END_IF

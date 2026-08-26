@@ -11,8 +11,7 @@ END_VAR
 
 VAR
 	// pressure calculations
-	rCurrentMin			: REAL := 4;			// 4ma --> minimum sensor measurement
-	rCurrentMeasRange	: REAL := 16; 			// 4-20ma signal --> 16ma range
+	rCurrentMeasRange	: REAL := 32767; 		// 16bit signed INT --> 0-32767 is positive range
 	rSensorPressRange	: REAL := 1551.45;		// 0-30psia --> 0-1551.45torr
 	
 	// flow calculations
@@ -26,11 +25,11 @@ stProcessValues.rTc3External := TO_REAL(GVL_IO.aiTC3_ExternalTemp)/10;
 stProcessValues.rTc4Delivery := TO_REAL(GVL_IO.aiTC4_DeliveryTemp)/10;
 
 // pressure calculations
-stProcessValues.rPt1Upstream := (GVL_IO.aiPT1_UpstreamPressure-rCurrentMin)/rCurrentMeasRange * rSensorPressRange;
-stProcessValues.rPt2Downstream := (GVL_IO.aiPT2_DownstreamPressure-rCurrentMin)/rCurrentMeasRange * rSensorPressRange;
+stProcessValues.rPt1Upstream := TO_REAL(GVL_IO.aiPT1_UpstreamPressure)/rCurrentMeasRange * rSensorPressRange;
+stProcessValues.rPt2Downstream := TO_REAL(GVL_IO.aiPT2_DownstreamPressure)/rCurrentMeasRange * rSensorPressRange;
 stProcessValues.rDiffPressure := stProcessValues.rPt1Upstream - stProcessValues.rPt2Downstream;
 
-IF eState = E_SystemState.CheckIfHot AND stProcessValues.rTc1Spa < 30 AND stProcessValues.rTc2FlowMeter < 30 THEN
+IF eState = E_SystemState.FillWater AND stProcessValues.rTc1Spa < 30 AND stProcessValues.rTc2FlowMeter < 30 THEN
 	stProcessValues.rAtmPressure := stProcessValues.rPt2Downstream;
 	stProcessValues.rDiffPressureOffset := stProcessValues.rPt1Upstream - stProcessValues.rPt2Downstream;
 END_IF

@@ -60,8 +60,11 @@ VAR
     tonWaterFill        : TON;
     tonWaterReg         : TON;
     tonWaterEmpty       : TON;
+	tonWaterOverfill    : TON;
 	
 	tWater_15m			: TIME := T#15M;
+	tEmptyDelay			: TIME := T#5S;
+	tFullDelay			: TIME := T#5S;
 
     // --- external-line temperature checks ---------------------------------
     tonExtWarmupWindow  : TON;   			// fixed window for the temperature-rise test
@@ -123,6 +126,8 @@ END_IF
 //    the transducer is disconnected or its loop supply is dead, not that the
 //    vessel is genuinely at that pressure. Suppressed during the reset window
 //    so a dead transducer does not deadlock the operator.
+bSensorHwInhibit := (eState = E_SystemState.Fault);
+
 tonPt1Bad(IN := (stProcess.rPt1Upstream < GVL_SysParameters.rPtMininum) AND NOT bSensorHwInhibit,
           PT := tGeneral_250ms);
 IF tonPt1Bad.Q THEN
@@ -235,11 +240,21 @@ END_IF
 // Empty-vessel check. The filter is deliberately much longer during purge,
 // because purge repeatedly drains the vessel on purpose and the level would
 // otherwise trip this constantly.
-tonWaterEmpty(IN := NOT bWaterEmptyFiltered, PT := tWater_15m);
+IF bTempControlActive THEN
+	tonWaterEmpty(IN := bWaterEmptyFiltered, PT := tEmptyDelay);
 
-IF tonWaterEmpty.Q THEN
-    stFaults.bWaterEmpty := TRUE;
-    _Report(E_FaultId.WaterEmpty);
+	IF tonWaterEmpty.Q THEN
+		stFaults.bWaterEmpty := TRUE;
+		_Report(E_FaultId.WaterEmpty);
+	END_IF
+END_IF
+
+// over-filled vessel check
+tonWaterOverfill(IN := GVL_IO.biLS2_WaterHighLevel, PT := tFullDelay);
+
+IF tonWaterOverfill.Q THEN
+	stFaults.bWaterOverFill := TRUE;
+	_Report(E_FaultId.WaterOverFill);
 END_IF
 
 // Fill timeout: inlet has been open for the full fill window and the centre

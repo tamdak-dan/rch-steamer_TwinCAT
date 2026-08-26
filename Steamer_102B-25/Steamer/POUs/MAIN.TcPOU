@@ -38,7 +38,7 @@ END_VAR
       <ST><![CDATA[//========================= FB CALLS =====================================
 
 // SCALE INPUTS
-fbProcessCalcs();
+fbProcessCalcs(eState := fbStateMachine.eState);
 
 // FAULT CHECK
 fbFaultMonitor(
@@ -83,11 +83,10 @@ END_IF;
 // Latch fault -> force state machine into Fault (only auto-clears via reset).
 IF fbFaultMonitor.bAnyLatchingFault THEN
     fbStateMachine.RequestFault();
-	fbFaultMonitor.InhibitSensorHwEval(TRUE);
 END_IF
 
 fbStateMachine(
-	stFaults := GVL_HMI.stHmiStatus.stFaults,
+	stFaults := fbFaultMonitor.stFaults,
 	stHmiSetpoints := GVL_HMI.stHmiSetpoints,
 	stProcessValues := fbProcessCalcs.stProcessValues,
 	bDeliveryCmd := fbHmi.bCmdDelivery,
@@ -106,7 +105,7 @@ fbWaterFill(
 	eMode := fbStateMachine.eWaterFillMode,
 	bCenterSwitch := GVL_IO.biLS1_WaterMidLevel,
 	bEmptySwitch := GVL_IO.biLS3_WaterLowLevel,
-	bAutofillEnable := GVL_HMI.stHmiCommand.bAutofillEnable,
+	bAutofillEnable := fbHmi.bCmdAutofillEnable,
 	bFillComplete => GVL_HMI.stHmiStatus.bFillComplete,
 	bCenterFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterFull,
 	bEmptyFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterEmpty
@@ -122,9 +121,9 @@ fbPurge(
 fbPressureControl(
 	bEnable := fbStateMachine.bControlEnable,          
 	eState := fbStateMachine.eState,        
-	bDpControlOff := GVL_HMI.stHmiCommand.bDpControlOff,
-	bTempControlOff := GVL_HMI.stHmiCommand.bTempControlOff,
-	bExtHeaterEnable := GVL_HMI.stHmiCommand.bExtHeaterEnable,
+	bDpControlOff := fbHmi.bCmdSuspendDpLoop,
+	bTempControlOff := fbHmi.bCmdSuspendTempLoop,
+	bExtHeaterEnable := fbHmi.bCmdExtHeaterOn,
 	stProcess := fbProcessCalcs.stProcessValues,
 	stSetpoints := GVL_HMI.stHmiSetpoints ,
 	bFlushed := fbSpaFlush.bSpaFlushed
@@ -146,7 +145,7 @@ fbOutputHandler(
 	eState := fbStateMachine.eState,
 	bWaterFillValve := fbWaterFill.qFillValve,
 	bPurgeValve := fbPurge.qDrainValve,
-	bDeliveryPermit := ,
+	bDeliveryPermit := GVL_HMI.stHmiCommand.bSteamDeliveryOn,
 	bH1Upstream := fbPressureControl.qH1_UpstreamHeater,
 	bH2Purifier := fbPressureControl.qH2_SpaHeater,
 	bFmHeater := fbPressureControl.qH3_FlowmeterHeater,

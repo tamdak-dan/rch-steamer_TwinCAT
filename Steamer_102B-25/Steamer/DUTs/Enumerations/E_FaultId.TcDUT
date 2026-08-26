@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <DUT Name="E_FaultId" Id="{a1b2c3d4-0009-4a5b-9c8d-e1f200000009}">
     <Declaration><![CDATA[//=============================================================================
 // E_FaultId
@@ -41,7 +41,8 @@ TYPE E_FaultId :
     WaterFill               := 21,
     WaterRegulation         := 22,
     WaterEmpty              := 23,
-    VesselPurgeTimeout      := 24,
+	WaterOverFill			:= 24,
+    VesselPurgeTimeout      := 25,
 
     // --- temperature: over-limit ----------------------------------------
     SpaOverTemp             := 31,

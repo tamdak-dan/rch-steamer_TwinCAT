@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <POU Name="FB_OutputHandler" Id="{035bd223-4782-4b25-9fd3-97d3ad8a81a2}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_OutputHandler
 VAR_INPUT
@@ -70,20 +70,21 @@ CASE eState OF
     //-- Running states: automatic intent from sequence FBs ------------------
     ELSE
         tonSv2Close(IN := FALSE);   // keep the relief timer reset while running
-
-        // Water fill sequence owns SV4
-        bSV4_WaterInletValve := bWaterFillValve;
+		
+		// SV1 drain: closed in these states (drain handled via maintenance)
+        bSV1_DrainValve := bPurgeValve;
 
         // SV2 main: open during purge, and held open while steam is flowing
-        bSV2_SpaValve := bPurgeValve OR (eState = E_SystemState.SteamFlowing);
+        bSV2_SpaValve := (eState = E_SystemState.SteamFlowing);
 
         // SV3 process delivery: pure on/off. Legacy Y3 is SET on SES-On and
         // RST on SES-Off / stage exit. Here the state machine supplies the
         // delivery permit; SV3 opens only while flowing and permitted.
         bSV3_DeliveryValve := (eState = E_SystemState.SteamFlowing) AND bDeliveryPermit;
 
-        // SV1 drain: closed in these states (drain handled via maintenance)
-        bSV1_DrainValve := FALSE;
+        // Water fill sequence owns SV4
+        bSV4_WaterInletValve := bWaterFillValve;
+
 END_CASE
 
 //============================================================================

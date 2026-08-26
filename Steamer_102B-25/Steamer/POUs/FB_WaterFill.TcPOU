@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <POU Name="FB_WaterFill" Id="{a0c26368-373e-4fd3-95ee-778e79d1422c}" SpecialFunc="None">
     <Declaration><![CDATA[//=============================================================================
 // FB_WaterFill | VERIFIED 7.30.26 DA
@@ -104,6 +104,7 @@ CASE eMode OF
             // --- LS1 covered: CLOSE valve immediately, run confirm dwell ---
             // (legacy rung 502: RST Y4 on the same rung TMR T24 starts)
             qFillValve := FALSE;
+			bFillComplete := TRUE;
         END_IF
 
     //-- RUNNING AUTOFILL --------------------------------------

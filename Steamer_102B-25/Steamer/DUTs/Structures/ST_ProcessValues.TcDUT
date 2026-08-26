@@ -13,12 +13,12 @@
 TYPE ST_ProcessValues :
 STRUCT
     // --- Pressures [Torr] -------------------------------- 
-    rPt1Upstream    	: REAL;    	// PT-1 upstream pressure    
-    rPt2Downstream  	: REAL;    	// PT-2 downstream pressure  
-    //rPt3AtmRef      	: REAL;    	// PT-3 atmospheric reference
-    rDiffPressure   	: REAL;    	// PT-1 - PT-2 differential
-	rDiffPressureOffset	: REAL;		// pt1-pt2 differential when equalized
-	rAtmPressure		: REAL;		// atmospheric pressure - computed
+    rPt1Upstream    	: REAL;    			// PT-1 upstream pressure    
+    rPt2Downstream  	: REAL;    			// PT-2 downstream pressure  
+    //rPt3AtmRef      	: REAL;    			// PT-3 atmospheric reference
+    rDiffPressure   	: REAL;    			// PT-1 - PT-2 differential
+	rDiffPressureOffset	: REAL;				// pt1-pt2 differential when equalized
+	rAtmPressure		: REAL := 760;		// atmospheric pressure - computed
 
     // --- Temperatures [degC] ------------------------------
     rTc1Spa         	: REAL;    	// TC1 SPA temperature

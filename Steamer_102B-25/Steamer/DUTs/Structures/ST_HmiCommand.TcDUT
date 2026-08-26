@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <DUT Name="ST_HmiCommand" Id="{a1b2c3d4-0005-4a5b-9c8d-e1f200000005}">
     <Declaration><![CDATA[//=============================================================================
 // ST_HmiCommand
@@ -33,7 +33,7 @@ STRUCT
     bDpControlOff   : BOOL;    				// suspend diff pressure control
     bTempControlOff : BOOL;    				// suspend purifier temp control
     bExtHeaterEnable: BOOL;    				// external heater enable
-	bAutofillEnable	: BOOL;					// toggle autofill enable when running
+	bAutofillEnable	: BOOL := TRUE;					// toggle autofill enable when running
 
     // --- Config page --------------------------------------------------------
     bApplySetpoints : BOOL;    // pulse: validate + apply stSetpointRequest
