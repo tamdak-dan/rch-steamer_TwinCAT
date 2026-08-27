@@ -58,38 +58,46 @@ fbFaultMonitor(
 	bExternalHeaterOff := NOT fbHmi.bCmdExtHeaterOn,
 	bHmiHeartbeatOk := NOT fbHmi.bHmiCommLoss
 	);
-
-//========================= HMI (publish + consume) =======================
-// Run BEFORE the state machine so command pulses are latched this cycle.
-// FB_Hmi publishes GVL_HMI.stStatus and clears consumed command bits.
-fbHmi(
-	eState      := fbStateMachine.eState,
-    stProcess   := fbProcessCalcs.stProcessValues,
-	stFaults	:= fbFaultMonitor.stFaults,
-	bReady 		:= fbStateMachine.bReady
-);
-	  
-//========================= STATE MACHINE =================================
-// Consume the one-cycle HMI command pulses, then run the CASE.
-IF fbHmi.bCmdSesOn THEN fbStateMachine.RequestStart(); END_IF
-IF fbHmi.bCmdSesOff THEN fbStateMachine.RequestStop(); END_IF
-IF fbHmi.bCmdEnterMaint THEN fbStateMachine.RequestMaintenance(); END_IF
-IF fbHmi.bCmdExitMaint THEN fbStateMachine.RequestExitMaint(); END_IF
-IF fbHmi.bCmdFaultReset THEN
-    fbFaultMonitor.ResetAll();
-    fbStateMachine.RequestFaultReset();
-END_IF;
-
+	
 // Latch fault -> force state machine into Fault (only auto-clears via reset).
 IF fbFaultMonitor.bAnyLatchingFault THEN
     fbStateMachine.RequestFault();
 END_IF
 
+//========================= HMI (publish + consume) =======================
+// Run BEFORE the state machine so command pulses are latched this cycle.
+// FB_Hmi publishes GVL_HMI.stStatus and clears consumed command bits.
+fbHmi(
+	eState      				:= fbStateMachine.eState,
+    stProcess   				:= fbProcessCalcs.stProcessValues,
+	stFaults					:= fbFaultMonitor.stFaults,
+	bReady 						:= fbStateMachine.bReady
+);
+	  
+// Consume the one-cycle HMI command pulses
+IF fbHmi.bCmdSesOn THEN fbStateMachine.RequestStart(); END_IF
+IF fbHmi.bCmdSesOff THEN fbStateMachine.RequestStop(); END_IF
+IF fbHmi.bCmdDeliveryOn THEN fbStateMachine.RequestDelivery(TRUE); END_IF
+IF fbHmi.bCmdDeliveryOff THEN fbStateMachine.RequestDelivery(FALSE); END_IF
+IF fbHmi.bCmdFaultReset THEN fbFaultMonitor.ResetAll(); fbStateMachine.RequestFaultReset(); END_IF;
+// IF fbHmi.bCmdFaultAck THEN ...
+IF fbHmi.bCmdEnterMaint THEN fbStateMachine.RequestMaintenance(); END_IF
+IF fbHmi.bCmdExitMaint THEN fbStateMachine.RequestExitMaint(); END_IF
+IF fbHmi.bCmdExtHeaterOn THEN fbStateMachine.RequestExtHeater(TRUE); END_IF
+IF fbHmi.bCmdExtHeaterOff THEN fbStateMachine.RequestExtHeater(FALSE); END_IF
+IF fbHmi.bCmdAutofillOn THEN fbStateMachine.RequestAutofill(TRUE); END_IF
+IF fbHmi.bCmdAutofillOff THEN fbStateMachine.RequestAutofill(FALSE); END_IF
+IF fbHmi.bCmdDpLoopOn THEN fbStateMachine.RequestDpLoop(TRUE); END_IF
+IF fbHmi.bCmdDpLoopOff THEN fbStateMachine.RequestDpLoop(FALSE); END_IF
+IF fbHmi.bCmdTempLoopOn THEN fbStateMachine.RequestTempLoop(TRUE); END_IF
+IF fbHmi.bCmdTempLoopOff THEN fbStateMachine.RequestTempLoop(FALSE); END_IF
+
+//========================= STATE MACHINE =================================
+
 fbStateMachine(
 	stFaults := fbFaultMonitor.stFaults,
 	stHmiSetpoints := GVL_HMI.stHmiSetpoints,
 	stProcessValues := fbProcessCalcs.stProcessValues,
-	bDeliveryCmd := fbHmi.bCmdDelivery,
 	bFillComplete := fbWaterFill.bFillComplete,
 	bPurgeComplete := fbPurge.bPurgeComplete,
 	rSpaTemp := fbProcessCalcs.stProcessValues.rTc1Spa,
@@ -105,7 +113,7 @@ fbWaterFill(
 	eMode := fbStateMachine.eWaterFillMode,
 	bCenterSwitch := GVL_IO.biLS1_WaterMidLevel,
 	bEmptySwitch := GVL_IO.biLS3_WaterLowLevel,
-	bAutofillEnable := fbHmi.bCmdAutofillEnable,
+	bAutofillEnable := fbStateMachine.bAutofillEnable,
 	bFillComplete => GVL_HMI.stHmiStatus.bFillComplete,
 	bCenterFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterFull,
 	bEmptyFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterEmpty
@@ -121,9 +129,9 @@ fbPurge(
 fbPressureControl(
 	bEnable := fbStateMachine.bControlEnable,          
 	eState := fbStateMachine.eState,        
-	bDpControlOff := fbHmi.bCmdSuspendDpLoop,
-	bTempControlOff := fbHmi.bCmdSuspendTempLoop,
-	bExtHeaterEnable := fbHmi.bCmdExtHeaterOn,
+	bDpControlOff := fbStateMachine.bDpLoopEnable,
+	bTempControlOff := fbStateMachine.bTempLoopEnable,
+	bExtHeaterEnable := fbStateMachine.bExtHeaterEnable,
 	stProcess := fbProcessCalcs.stProcessValues,
 	stSetpoints := GVL_HMI.stHmiSetpoints ,
 	bFlushed := fbSpaFlush.bSpaFlushed
@@ -145,7 +153,7 @@ fbOutputHandler(
 	eState := fbStateMachine.eState,
 	bWaterFillValve := fbWaterFill.qFillValve,
 	bPurgeValve := fbPurge.qDrainValve,
-	bDeliveryPermit := GVL_HMI.stHmiCommand.bSteamDeliveryOn,
+	bDeliveryPermit := fbStateMachine.bDeliveryEnable,
 	bH1Upstream := fbPressureControl.qH1_UpstreamHeater,
 	bH2Purifier := fbPressureControl.qH2_SpaHeater,
 	bFmHeater := fbPressureControl.qH3_FlowmeterHeater,

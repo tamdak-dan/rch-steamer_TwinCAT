@@ -20,20 +20,25 @@ STRUCT
     bSesOn          	: BOOL;    // start command
     bSesOff         	: BOOL;    // stop command 
 	bSteamDeliveryOn	: BOOL;    // steam delivery enable
+	bSteamDeliveryOff	: BOOL;    // steam delivery disable
 
     // --- Alarms page --------------------------------------------------------
-    bFaultReset     : BOOL;    // reset all faults
-    bFaultAck       : BOOL;    // acknowledge (silences banner, faults stay listed)
+    bFaultReset     	: BOOL;    // reset all faults
+    bFaultAck       	: BOOL;    // acknowledge (silences banner, faults stay listed)
 
     // --- Maintenance page ---------------------------------------------------
-    bEnterMaint     : BOOL;    				// request Maintenance state
-    bExitMaint      : BOOL;    				// leave Maintenance 
-    aValveCmd      	: ARRAY[1..4] OF BOOL;  // SV1 drain, SV2 main, SV3 process, SV4 water
-    bDrainMode      : BOOL;    				// drain mode
-    bDpControlOff   : BOOL;    				// suspend diff pressure control
-    bTempControlOff : BOOL;    				// suspend purifier temp control
-    bExtHeaterEnable: BOOL;    				// external heater enable
-	bAutofillEnable	: BOOL := TRUE;					// toggle autofill enable when running
+    bEnterMaint     	: BOOL;    				// request Maintenance state
+    bExitMaint      	: BOOL;    				// leave Maintenance 
+    aValveCmd      		: ARRAY[1..4] OF BOOL;  // SV1 drain, SV2 main, SV3 process, SV4 water
+    bDrainMode      	: BOOL;    				// drain mode
+	bDpControlOn   		: BOOL;    				// suspend diff pressure control
+    bDpControlOff   	: BOOL;    				// suspend diff pressure control
+	bTempControlOn	 	: BOOL;    				// suspend purifier temp control
+    bTempControlOff 	: BOOL;    				// suspend purifier temp control
+    bExtHeaterOn		: BOOL;    				// external heater enable
+	bExtHeaterOff		: BOOL;					// extermal heater disable	
+	bAutofillOn			: BOOL;					// toggle autofill enable when running
+	bAutofillOff		: BOOL;					// toggle autofill off
 
     // --- Config page --------------------------------------------------------
     bApplySetpoints : BOOL;    // pulse: validate + apply stSetpointRequest

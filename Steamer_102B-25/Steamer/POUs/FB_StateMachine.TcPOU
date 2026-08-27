@@ -1,12 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <POU Name="FB_StateMachine" Id="{c229f4cc-9a87-4d59-a1ae-d17bbe58764f}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_StateMachine
 VAR_INPUT
     stFaults    		: ST_Faults;
     stHmiSetpoints 		: ST_HmiSetpoints;
 	stProcessValues		: ST_ProcessValues;
-	bDeliveryCmd		: BOOL;
 	bFillComplete		: BOOL;
 	bPurgeComplete		: BOOL;
 	rSpaTemp			: REAL;
@@ -22,6 +21,10 @@ VAR_OUTPUT
 	bSpaFlushEnable	 : BOOL;				// enable SPA flush sequence
 	bSpaFlushReset	 : BOOL;				// reset SPA flush fb
 	bDeliveryEnable	 : BOOL;				// enable steam delivery
+	bAutofillEnable	 : BOOL;				// enable water autofill during running states
+	bExtHeaterEnable : BOOL;				// enable external heater
+	bDpLoopEnable	 : BOOL;				// enable dp loop
+	bTempLoopEnable	 : BOOL;				// enable temp loop
     bReady           : BOOL;   				// green Ready: in SteamFlowing, in-band, no faults
     bInStartup       : BOOL;   				// TRUE for any Init* state
 	bColdStart		 : BOOL;				// true if most recent startup was cold
@@ -34,6 +37,7 @@ VAR
     bReqExitMaint    : BOOL;
     bReqFault        : BOOL;
     bReqFaultReset   : BOOL;
+	bReqDelivery	 : BOOL;
     // --- state entry detection (rising edge of a new state) ---
     eStatePrev       : E_SystemState;
     bEntry           : BOOL;   // TRUE on the first cycle of the current state
@@ -191,7 +195,7 @@ CASE eState OF
                   AND _FlowInBand()
                   AND _TempsInBand();
 		
-		bDeliveryEnable := bDeliveryCmd AND NOT stFaults.bHmiCommLoss;
+		bDeliveryEnable := bReqDelivery AND NOT stFaults.bHmiCommLoss;
 				  
         IF bReqStop THEN
             eState := E_SystemState.SesOff;
@@ -272,11 +276,67 @@ METHOD PRIVATE _TempsInBand : BOOL]]></Declaration>
         <ST><![CDATA[_TempsInBand := (rSpaTemp >= 30.0) AND (rSpaTemp <= 130.0);]]></ST>
       </Implementation>
     </Method>
+    <Method Name="RequestAutofill" Id="{6c5258b1-f522-4130-955b-c030451e0001}">
+      <Declaration><![CDATA[METHOD RequestAutofill : BOOL
+VAR_INPUT
+	cmd : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF cmd THEN
+	bAutofillEnable := TRUE;
+ELSE
+	bAutofillEnable := FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RequestDelivery" Id="{6fe4967a-b56a-4a13-8d75-e001bdba1ada}">
+      <Declaration><![CDATA[METHOD RequestDelivery : BOOL
+VAR_INPUT
+	cmd	: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF cmd THEN 
+	bReqDelivery := TRUE; 
+ELSE 
+	bReqDelivery := FALSE; 
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RequestDpLoop" Id="{ca35a8bd-b54f-45e9-b38e-e4247aa3d5e2}">
+      <Declaration><![CDATA[METHOD RequestDpLoop : BOOL
+VAR_INPUT
+	cmd : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF cmd THEN 
+	bDpLoopEnable := TRUE; 
+ELSE 
+	bDpLoopEnable := FALSE; 
+END_IF]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="RequestExitMaint" Id="{d6350887-01b9-4198-9246-356e4bc00618}">
       <Declaration><![CDATA[METHOD RequestExitMaint : BOOL]]></Declaration>
       <Implementation>
         <ST><![CDATA[bReqExitMaint := TRUE;
 RequestExitMaint := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RequestExtHeater" Id="{387c9316-a84c-4b10-8bd9-0b925a89f5ff}">
+      <Declaration><![CDATA[METHOD RequestExtHeater : BOOL
+VAR_INPUT
+	cmd	: BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF cmd THEN
+	bExtHeaterEnable := TRUE;
+ELSE
+	bExtHeaterEnable := FALSE;
+END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="RequestFault" Id="{a61af9d8-4978-47f2-84b4-896606f3e70c}">
@@ -317,6 +377,20 @@ METHOD RequestStop : BOOL]]></Declaration>
       <Implementation>
         <ST><![CDATA[bReqStop := TRUE;
 RequestStop := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RequestTempLoop" Id="{79d0886e-4e8a-4fb8-9af6-f62c73b78862}">
+      <Declaration><![CDATA[METHOD RequestTempLoop : BOOL
+VAR_INPUT
+	cmd : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF cmd THEN
+	bTempLoopEnable := TRUE;
+ELSE
+	bTempLoopEnable := FALSE;
+END_IF]]></ST>
       </Implementation>
     </Method>
   </POU>

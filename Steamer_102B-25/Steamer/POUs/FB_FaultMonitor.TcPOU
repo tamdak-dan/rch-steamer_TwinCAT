@@ -63,7 +63,6 @@ VAR
 	tonWaterOverfill    : TON;
 	
 	tWater_15m			: TIME := T#15M;
-	tEmptyDelay			: TIME := T#5S;
 	tFullDelay			: TIME := T#5S;
 
     // --- external-line temperature checks ---------------------------------
@@ -240,13 +239,11 @@ END_IF
 // Empty-vessel check. The filter is deliberately much longer during purge,
 // because purge repeatedly drains the vessel on purpose and the level would
 // otherwise trip this constantly.
-IF bTempControlActive THEN
-	tonWaterEmpty(IN := bWaterEmptyFiltered, PT := tEmptyDelay);
+tonWaterEmpty(IN := bWaterEmptyFiltered, PT := SEL(bPurgeActive, T#2S, T#30S));
 
-	IF tonWaterEmpty.Q THEN
-		stFaults.bWaterEmpty := TRUE;
-		_Report(E_FaultId.WaterEmpty);
-	END_IF
+IF tonWaterEmpty.Q THEN
+	stFaults.bWaterEmpty := TRUE;
+	_Report(E_FaultId.WaterEmpty);
 END_IF
 
 // over-filled vessel check

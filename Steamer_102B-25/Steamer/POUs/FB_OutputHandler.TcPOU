@@ -75,7 +75,7 @@ CASE eState OF
         bSV1_DrainValve := bPurgeValve;
 
         // SV2 main: open during purge, and held open while steam is flowing
-        bSV2_SpaValve := (eState = E_SystemState.SteamFlowing);
+        bSV2_SpaValve := TRUE;
 
         // SV3 process delivery: pure on/off. Legacy Y3 is SET on SES-On and
         // RST on SES-Off / stage exit. Here the state machine supplies the

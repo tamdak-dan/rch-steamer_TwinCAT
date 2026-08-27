@@ -3,10 +3,12 @@
   <POU Name="FB_Hmi" Id="{8f208da5-e654-4ab9-8425-89789dddd507}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_Hmi
 VAR_INPUT
-	eState          : E_SystemState;
-    stProcess       : ST_ProcessValues;
-    stFaults        : ST_Faults;              // from FB_FaultMonitor
-    bReady          : BOOL;                   // temps in band, ok to flow
+	eState          		: E_SystemState;
+    stProcess       		: ST_ProcessValues;
+    stFaults        		: ST_Faults;              // from FB_FaultMonitor
+    bReady          		: BOOL;                   // temps in band, ok to flow
+	
+	
     // arPidOutput     : ARRAY[1..6] OF REAL;    // loop outputs 0..100 %
     // arValveActual   : ARRAY[1..4] OF BOOL;    // real valve output states
     // stLimits        : ST_SetpointLimits;      // clamp ranges (defaults ok)
@@ -15,16 +17,21 @@ VAR_OUTPUT
 	// one-cycle command pulses for MAIN / state machine
     bCmdSesOn       	: BOOL;
     bCmdSesOff      	: BOOL;
-	bCmdDelivery		: BOOL;
+	bCmdDeliveryOn		: BOOL;
+	bCmdDeliveryOff		: BOOL;
     bCmdFaultReset  	: BOOL;
     bCmdFaultAck    	: BOOL;
-	bCmdAutofillEnable	: BOOL;
     bCmdEnterMaint  	: BOOL;
     bCmdExitMaint   	: BOOL;
 	bCmdExtHeaterOn		: BOOL;
-	bCmdSuspendDpLoop	: BOOL;
-	bCmdSuspendTempLoop	: BOOL;
-    bSetpointsChanged 	: BOOL;
+	bCmdExtHeaterOff	: BOOL;
+	bCmdAutofillOn		: BOOL;
+	bCmdAutofillOff		: BOOL;
+	bCmdDpLoopOn		: BOOL;
+	bCmdDpLoopOff		: BOOL;
+	bCmdTempLoopOn		: BOOL;
+	bCmdTempLoopOff		: BOOL;
+	bSetpointsChanged	: BOOL;
 	
 	// heartbeat supervision	
 	bHmiCommLoss    : BOOL;  // feed into ST_Faults.bHmiCommLoss
@@ -61,21 +68,41 @@ bFirstCycle := FALSE;
 // Latch each request to the output for exactly one cycle, then clear the
 // GVL bit so the Pi never has to write FALSE and a stuck TRUE cannot
 // repeat-fire.
-bCmdSesOn      := GVL_HMI.stHmiCommand.bSesOn;
-bCmdSesOff     := GVL_HMI.stHmiCommand.bSesOff;
-bCmdDelivery   := GVL_HMI.stHmiCommand.bSteamDeliveryOn;
-bCmdFaultReset := GVL_HMI.stHmiCommand.bFaultReset;
-bCmdFaultAck   := GVL_HMI.stHmiCommand.bFaultAck;
-bCmdEnterMaint := GVL_HMI.stHmiCommand.bEnterMaint;
-bCmdExitMaint  := GVL_HMI.stHmiCommand.bExitMaint;
 
+// set any new commands
+bCmdSesOn  			:= GVL_HMI.stHmiCommand.bSesOn; 
+bCmdSesOff     		:= GVL_HMI.stHmiCommand.bSesOff;
+bCmdDeliveryOn		:= GVL_HMI.stHmiCommand.bSteamDeliveryOn;
+bCmdDeliveryOff		:= GVL_HMI.stHmiCommand.bSteamDeliveryOff;
+bCmdFaultReset 		:= GVL_HMI.stHmiCommand.bFaultReset;
+bCmdFaultAck   		:= GVL_HMI.stHmiCommand.bFaultAck;
+bCmdEnterMaint 		:= GVL_HMI.stHmiCommand.bEnterMaint;
+bCmdExitMaint  		:= GVL_HMI.stHmiCommand.bExitMaint;
+bCmdExtHeaterOn     := GVL_HMI.stHmiCommand.bExtHeaterOn;
+bCmdExtHeaterOff    := GVL_HMI.stHmiCommand.bExtHeaterOff;
+bCmdAutofillOn  	:= GVL_HMI.stHmiCommand.bAutofillOn;
+bCmdAutofillOff  	:= GVL_HMI.stHmiCommand.bAutofillOff;
+bCmdDpLoopOn   		:= GVL_HMI.stHmiCommand.bDpControlOn;
+bCmdDpLoopOff   	:= GVL_HMI.stHmiCommand.bDpControlOff;
+bCmdTempLoopOn 		:= GVL_HMI.stHmiCommand.bTempControlOn;
+bCmdTempLoopOff		:= GVL_HMI.stHmiCommand.bTempControlOff;
+
+// clear stale cmds
 GVL_HMI.stHmiCommand.bSesOn      		:= FALSE;
 GVL_HMI.stHmiCommand.bSesOff     		:= FALSE;
 GVL_HMI.stHmiCommand.bSteamDeliveryOn 	:= FALSE;
+GVL_HMI.stHmiCommand.bSteamDeliveryOff 	:= FALSE;
 GVL_HMI.stHmiCommand.bFaultReset 		:= FALSE;
 GVL_HMI.stHmiCommand.bFaultAck   		:= FALSE;
 GVL_HMI.stHmiCommand.bEnterMaint 		:= FALSE;
 GVL_HMI.stHmiCommand.bExitMaint  		:= FALSE;
+GVL_HMI.stHmiCommand.bExtHeaterOn   	:= FALSE;
+GVL_HMI.stHmiCommand.bAutofillOn 		:= FALSE;
+GVL_HMI.stHmiCommand.bAutofillOff 		:= FALSE;
+GVL_HMI.stHmiCommand.bDpControlOn   	:= FALSE;
+GVL_HMI.stHmiCommand.bDpControlOff   	:= FALSE;
+GVL_HMI.stHmiCommand.bTempControlOff 	:= FALSE;
+GVL_HMI.stHmiCommand.bTempControlOn 	:= FALSE;
 
 // Safety interlock: ignore SES ON during comm-lost or active fault display;
 // the state machine makes the final call, this is belt-and-braces.
