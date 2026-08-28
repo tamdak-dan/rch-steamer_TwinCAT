@@ -15,6 +15,15 @@ VAR
 	rSensorPressRange	: REAL := 1551.45;		// 0-30psia --> 0-1551.45torr
 	
 	// flow calculations
+	rDp12 				: REAL;
+	rDp23				: REAL;
+	rFlowActual			: REAL;
+	rOrificeA1			: REAL := 0.05946087;	// main orifice coefficient
+	rOrificeA2			: REAL := 0.001057082;	// condensate/drain path coefficient
+	rOrificeA3			: REAL := 0.01;			// SPA path coefficient
+	rOrificeB1			: REAL := 0.0;			// main orifice offset
+	rOrificeB2			: REAL := 0.0;			// condensate offset
+	rOrificeB3			: REAL := 40; 			// torr offset
 	
 END_VAR]]></Declaration>
     <Implementation>
@@ -35,7 +44,22 @@ IF eState = E_SystemState.FillWater AND stProcessValues.rTc1Spa < 30 AND stProce
 END_IF
 
 // flow calculations
+rDp23 := stProcessValues.rPt2Downstream - stProcessValues.rAtmPressure;
+IF rDp23 > 0.0 THEN
+    stProcessValues.rCondensateFlow :=
+        MAX(rOrificeA2 * SQRT(rDp23 * stProcessValues.rAtmPressure) - rOrificeB2, 0.0);
+ELSE
+    stProcessValues.rCondensateFlow := 0.0;
+END_IF
 
+// actual delivered flow 
+IF stProcessValues.rPt1Upstream > stProcessValues.rPt2Downstream THEN
+    rFlowActual := rOrificeA1 * SQRT(stProcessValues.rDiffPressure * stProcessValues.rPt2Downstream)
+           - rOrificeB1 - stProcessValues.rCondensateFlow;
+    stProcessValues.rFlowActual := MAX(rFlowActual, 0.0);
+ELSE
+    stProcessValues.rFlowActual := 0.0;
+END_IF
 
 // discrete signals
 stProcessValues.bWaterHigh := GVL_IO.biLS2_WaterHighLevel;
@@ -44,7 +68,6 @@ stProcessValues.bWaterLow := GVL_IO.biLS3_WaterLowLevel AND NOT GVL_IO.biLS1_Wat
 stProcessValues.bWaterEmpty := NOT GVL_IO.biLS3_WaterLowLevel;
 stProcessValues.bPowerFaultSensor := GVL_IO.biPowerFault;
 stProcessValues.bCabinetFloodSensor  := GVL_IO.biTankFloodFault;
-
 
 GVL_HMI.stHmiStatus.stProcess := stProcessValues;]]></ST>
     </Implementation>

@@ -97,6 +97,7 @@ GVL_HMI.stHmiCommand.bFaultAck   		:= FALSE;
 GVL_HMI.stHmiCommand.bEnterMaint 		:= FALSE;
 GVL_HMI.stHmiCommand.bExitMaint  		:= FALSE;
 GVL_HMI.stHmiCommand.bExtHeaterOn   	:= FALSE;
+GVL_HMI.stHmiCommand.bExtHeaterOff   	:= FALSE;
 GVL_HMI.stHmiCommand.bAutofillOn 		:= FALSE;
 GVL_HMI.stHmiCommand.bAutofillOff 		:= FALSE;
 GVL_HMI.stHmiCommand.bDpControlOn   	:= FALSE;

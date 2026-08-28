@@ -78,6 +78,10 @@ bDeliveryEnable 	:= FALSE;
 bReady          	:= FALSE;
 bInStartup      	:= FALSE;
 
+// reset retained vars
+IF eState <> E_SystemState.SteamFlowing THEN RequestDelivery(FALSE); END_IF
+
+
 //================================ STATE MACHINE ==============================
 CASE eState OF
 

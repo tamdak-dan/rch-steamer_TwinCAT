@@ -55,7 +55,7 @@ fbFaultMonitor(
 	bSteamFlowing := fbStateMachine.bDeliveryEnable,
 	bWaterEmptyFiltered := fbWaterFill.bEmptyFiltered,
 	bWaterCenterFiltered := fbWaterFill.bCenterFiltered,
-	bExternalHeaterOff := NOT fbHmi.bCmdExtHeaterOn,
+	bExternalHeaterOff := NOT fbStateMachine.bExtHeaterEnable,
 	bHmiHeartbeatOk := NOT fbHmi.bHmiCommLoss
 	);
 	
@@ -129,8 +129,8 @@ fbPurge(
 fbPressureControl(
 	bEnable := fbStateMachine.bControlEnable,          
 	eState := fbStateMachine.eState,        
-	bDpControlOff := fbStateMachine.bDpLoopEnable,
-	bTempControlOff := fbStateMachine.bTempLoopEnable,
+	bDpControlOff := NOT fbStateMachine.bDpLoopEnable,
+	bTempControlOff := NOT fbStateMachine.bTempLoopEnable,
 	bExtHeaterEnable := fbStateMachine.bExtHeaterEnable,
 	stProcess := fbProcessCalcs.stProcessValues,
 	stSetpoints := GVL_HMI.stHmiSetpoints ,

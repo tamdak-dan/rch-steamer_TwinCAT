@@ -30,7 +30,8 @@ STRUCT
     rFlowActual     	: REAL;    	// F3 calculated steam flow     
     rFlowSetpoint   	: REAL;    	// active flow setpoint         
     rFlowRated      	: REAL;    	// rated max flow    
-	rFlowRatio			: REAL;		// FL_TO_DP23 = F3 / DP23 --> units: SLM per Torr           
+	rFlowRatio			: REAL;		// FL_TO_DP23 = F3 / DP23 --> units: SLM per Torr  
+	rCondensateFlow		: REAL;		// flow through the small (drain/condensate) orifice         
 
     // --- Discrete process status --------------------------
     bWaterHigh			: BOOL;		// water at high limit --> high limit switch on
