@@ -23,8 +23,8 @@ VAR_OUTPUT
 	bDeliveryEnable	 : BOOL;				// enable steam delivery
 	bAutofillEnable	 : BOOL;				// enable water autofill during running states
 	bExtHeaterEnable : BOOL;				// enable external heater
-	bDpLoopEnable	 : BOOL;				// enable dp loop
-	bTempLoopEnable	 : BOOL;				// enable temp loop
+	bDpLoopEnable	 : BOOL := TRUE;		// enable dp loop
+	bTempLoopEnable	 : BOOL := TRUE;		// enable temp loop
     bReady           : BOOL;   				// green Ready: in SteamFlowing, in-band, no faults
     bInStartup       : BOOL;   				// TRUE for any Init* state
 	bColdStart		 : BOOL;				// true if most recent startup was cold

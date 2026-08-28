@@ -44,11 +44,15 @@ IF eState = E_SystemState.FillWater AND stProcessValues.rTc1Spa < 30 AND stProce
 END_IF
 
 // flow calculations
+stProcessValues.rFlowSetpoint := GVL_HMI.stHmiSetpoints.rSetFlow;
+
 rDp23 := stProcessValues.rPt2Downstream - stProcessValues.rAtmPressure;
 IF rDp23 > 0.0 THEN
+	stProcessValues.rFlowRatio := stProcessValues.rFlowActual / rDp23;
     stProcessValues.rCondensateFlow :=
         MAX(rOrificeA2 * SQRT(rDp23 * stProcessValues.rAtmPressure) - rOrificeB2, 0.0);
 ELSE
+	stProcessValues.rFlowRatio := 0.0;      
     stProcessValues.rCondensateFlow := 0.0;
 END_IF
 
