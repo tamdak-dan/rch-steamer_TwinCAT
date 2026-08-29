@@ -9,6 +9,7 @@ VAR_INPUT
 	bFillComplete		: BOOL;
 	bPurgeComplete		: BOOL;
 	bSpaFlushed			: BOOL;
+	bDpReached			: BOOL;
 END_VAR
 VAR_OUTPUT
 	// system state
@@ -169,7 +170,7 @@ CASE eState OF
             eState := E_SystemState.SesOff;
 		ELSIF stFaults.bAnyFault THEN
             bReqFault := TRUE;    // legacy DS start-high -> S10
-        ELSIF _DiffPressEstablished() THEN
+        ELSIF bDpReached THEN
             eState := E_SystemState.InitMain;
         END_IF
 

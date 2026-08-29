@@ -107,6 +107,7 @@ fbStateMachine(
 	bFillComplete := fbWaterFill.bFillComplete,
 	bPurgeComplete := fbPurge.bPurgeComplete,
 	bSpaFlushed := fbSpaFlush.bSpaFlushed,
+	bDpReached := fbPressureControl.bDiffPressReached,
 	eState => eSystemState
 );
 				

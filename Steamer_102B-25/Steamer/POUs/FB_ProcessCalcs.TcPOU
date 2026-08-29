@@ -41,7 +41,8 @@ stProcessValues.rDiffPressure := stProcessValues.rPt1Upstream - stProcessValues.
 
 IF eState = E_SystemState.FillWater AND stProcessValues.rTc1Spa < 30 AND stProcessValues.rTc2FlowMeter < 30 THEN
 	stProcessValues.rAtmPressure := stProcessValues.rPt2Downstream;
-	stProcessValues.rDiffPressureOffset := stProcessValues.rPt1Upstream - stProcessValues.rPt2Downstream;
+	stProcessValues.rDiffPressureOffset := (TO_REAL(GVL_IO.aiPT1_UpstreamPressure)/rCurrentMeasRange * rSensorPressRange) - 
+										   (TO_REAL(GVL_IO.aiPT2_DownstreamPressure)/rCurrentMeasRange * rSensorPressRange);
 END_IF
 
 // flow calculations
