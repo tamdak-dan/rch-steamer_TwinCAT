@@ -8,7 +8,6 @@ VAR_INPUT
 	stProcessValues		: ST_ProcessValues;
 	bFillComplete		: BOOL;
 	bPurgeComplete		: BOOL;
-	rSpaTemp			: REAL;
 	bSpaFlushed			: BOOL;
 END_VAR
 VAR_OUTPUT
@@ -21,7 +20,7 @@ VAR_OUTPUT
 	bSpaFlushEnable	 : BOOL;				// enable SPA flush sequence
 	bSpaFlushReset	 : BOOL;				// reset SPA flush fb
 	bDeliveryEnable	 : BOOL;				// enable steam delivery
-	bAutofillEnable	 : BOOL;				// enable water autofill during running states
+	bAutofillEnable	 : BOOL := TRUE;		// enable water autofill during running states
 	bExtHeaterEnable : BOOL;				// enable external heater
 	bDpLoopEnable	 : BOOL := TRUE;		// enable dp loop
 	bTempLoopEnable	 : BOOL := TRUE;		// enable temp loop
@@ -41,12 +40,13 @@ VAR
     // --- state entry detection (rising edge of a new state) ---
     eStatePrev       : E_SystemState;
     bEntry           : BOOL;   // TRUE on the first cycle of the current state
-	// TODO move to fbFaultMonitor and delete from here
-    // --- thresholds (seed from GVL_Params at init; defaults from source) ---
-    tWarmupTime      : TIME := T#120S;   // legacy "Begin a 120 sec warm up timer for TC3"
-    tDiffPressTime   : TIME := T#10M;    // legacy baseline 15 min
-    tFillTimeout     : TIME := T#10M;
-    tPurgeTimeout    : TIME := T#10M;
+
+	// --- tmrs for ready condition ---
+	tmrReadyMake	: TON;
+	tmrReadyBreak	: TON;
+	tMakeOrBreak	: TIME := T#1M;
+
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -176,28 +176,39 @@ CASE eState OF
     //--------------------------------------------------------------------
     E_SystemState.InitMain:         // S50 : final checks before flow
     //--------------------------------------------------------------------
-    bInStartup     := TRUE;
-    bControlEnable := TRUE;
-    bSpaFlushEnable := TRUE;
-    eWaterFillMode := E_WaterFillMode.RunningAutofill;
-
-    IF bReqStop THEN
-        eState := E_SystemState.SesOff;
-	ELSIF stFaults.bAnyFault THEN
-		bReqFault := TRUE;
-    ELSIF bSpaFlushed AND _TempsInBand() AND _FlowInBand() THEN
-        eState := E_SystemState.SteamFlowing;
-    END_IF
+		bInStartup     := TRUE;
+		bControlEnable := TRUE;
+		bSpaFlushEnable := TRUE;
+		eWaterFillMode := E_WaterFillMode.RunningAutofill;
+	
+		IF bReqStop THEN
+			eState := E_SystemState.SesOff;
+		ELSIF stFaults.bAnyFault THEN
+			bReqFault := TRUE;
+		ELSIF bSpaFlushed AND _TempsInBand() AND _FlowInBand() THEN
+			eState := E_SystemState.SteamFlowing;
+		END_IF
 
     //--------------------------------------------------------------------
     E_SystemState.SteamFlowing:     // S60: normal production
     //--------------------------------------------------------------------
+		IF bEntry THEN
+			tmrReadyBreak(IN := FALSE);
+			tmrReadyMake(IN := FALSE);
+		END_IF
+	
         bControlEnable := TRUE;
 		eWaterFillMode := E_WaterFillMode.RunningAutofill;
         // Ready = producing, no active faults, flow tracking setpoint
-        bReady := NOT stFaults.bAnyFault
-                  AND _FlowInBand()
-                  AND _TempsInBand();
+        
+		tmrReadyBreak(IN := NOT _TempsInBand() OR NOT _FlowInBand(), PT := tMakeOrBreak);
+		tmrReadyMake(IN := _TempsInBand() AND _FlowInBand(), PT := tMakeOrBreak);
+
+		IF tmrReadyMake.Q THEN
+			bReady := NOT stFaults.bAnyFault;
+		ELSE
+			bReady := FALSE;
+		END_IF
 		
 		bDeliveryEnable := bReqDelivery AND NOT stFaults.bHmiCommLoss;
 				  
@@ -275,9 +286,32 @@ END_IF]]></ST>
     </Method>
     <Method Name="_TempsInBand" Id="{d3fe4c13-f97f-4432-8bcd-b18afa8468b0}">
       <Declaration><![CDATA[// TODO: real temperature bands from params (Warmup Temp V1535, Max Temp V1522).
-METHOD PRIVATE _TempsInBand : BOOL]]></Declaration>
+METHOD PRIVATE _TempsInBand : BOOL
+VAR
+	rTempBand 	: REAL := 5.0;
+	bTc1InBand	: BOOL;
+	bTc2InBand	: BOOL;
+	bTc3InBand	: BOOL;
+END_VAR]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_TempsInBand := (rSpaTemp >= 30.0) AND (rSpaTemp <= 130.0);]]></ST>
+        <ST><![CDATA[IF (stProcessValues.rTc1Spa >= GVL_SysParameters.rSpaTempSp - rTempBand) 
+	AND (stProcessValues.rTc1Spa <= GVL_SysParameters.rSpaTempSp + rTempBand) THEN
+	bTc1InBand := TRUE;
+END_IF
+
+IF (stProcessValues.rTc2FlowMeter >= GVL_SysParameters.rFlowMeterTempSp - rTempBand)
+    AND (stProcessValues.rTc2FlowMeter <  GVL_SysParameters.rFlowMeterTempSp + rTempBand) THEN
+	bTc2InBand := TRUE;
+END_IF
+
+IF NOT bExtHeaterEnable
+     OR ( (stProcessValues.rTc3External >= GVL_SysParameters.rExtMinReadyTemp)
+      AND (stProcessValues.rTc3External <  GVL_SysParameters.rExtHeaterTempSp + rTempBand) ) THEN
+	bTc3InBand := TRUE;
+END_IF
+
+ 
+ _TempsInBand := bTc1InBand AND bTc2InBand AND bTc3InBand;]]></ST>
       </Implementation>
     </Method>
     <Method Name="RequestAutofill" Id="{6c5258b1-f522-4130-955b-c030451e0001}">

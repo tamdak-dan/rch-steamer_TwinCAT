@@ -42,6 +42,7 @@ STRUCT
 
     // --- Config page --------------------------------------------------------
     bApplySetpoints : BOOL;    // pulse: validate + apply stSetpointRequest
+
 END_STRUCT
 END_TYPE
 ]]></Declaration>

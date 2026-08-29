@@ -342,18 +342,19 @@ END_IF
 //=============================================================================
 stFaults.bAnyFault :=
       stFaults.bPowerFault           	 	OR stFaults.bCabinetFlood
-   OR stFaults.bPneumaticLow         	 	OR stFaults.bUpstreamOverPress
-   OR stFaults.bDownstreamOverPress  	 	OR stFaults.bPt1HardwareFault
-   OR stFaults.bPt2HardwareFault     	 	OR stFaults.bSpaOverTemp
-   OR stFaults.bFlowMeterOverTemp    	 	OR stFaults.bExtOverTemp
-   OR stFaults.bDownstreamOverTemp    		OR stFaults.bSpaWarmupTimeout
-   OR stFaults.bFlowmeterWarmupTimeout      OR stFaults.bExtWarmupTimeout
-   OR stFaults.bDownstreamWarmupTimeout     OR stFaults.bExtTempDecoupled
-   OR stFaults.bExtTempLow		    		OR stFaults.bWaterEmpty
-   OR stFaults.bWaterFillTimeout       		OR stFaults.bWaterRegulationFault
-   OR stFaults.bPurgeTimeout           		OR stFaults.bDownstreamStartOverPress
-   OR stFaults.bStartDpTimeout     			OR stFaults.bFlowFault
-   OR stFaults.bStartDpHardwareFault		OR stFaults.bHmiCommLoss;
+   	OR stFaults.bPneumaticLow         	 	OR stFaults.bUpstreamOverPress
+   	OR stFaults.bDownstreamOverPress  	 	OR stFaults.bPt1HardwareFault
+   	OR stFaults.bPt2HardwareFault     	 	OR stFaults.bSpaOverTemp
+   	OR stFaults.bFlowMeterOverTemp    	 	OR stFaults.bExtOverTemp
+   	OR stFaults.bDownstreamOverTemp    		OR stFaults.bSpaWarmupTimeout
+   	OR stFaults.bFlowmeterWarmupTimeout     OR stFaults.bExtWarmupTimeout
+   	OR stFaults.bDownstreamWarmupTimeout    OR stFaults.bExtTempDecoupled
+   	OR stFaults.bExtTempLow		    		OR stFaults.bWaterEmpty
+   	OR stFaults.bWaterOverFill				OR stFaults.bWaterFillTimeout       		
+   	OR stFaults.bWaterRegulationFault		OR stFaults.bPurgeTimeout           		
+	OR stFaults.bDownstreamStartOverPress	OR stFaults.bStartDpTimeout     			
+	OR stFaults.bFlowFault					OR stFaults.bStartDpHardwareFault		
+	OR stFaults.bHmiCommLoss;
 
 bAnyLatchingFault := stFaults.bAnyFault;
 bAnyFaultPrev     := stFaults.bAnyFault;]]></ST>

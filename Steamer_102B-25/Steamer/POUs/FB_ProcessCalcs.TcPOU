@@ -35,6 +35,7 @@ stProcessValues.rTc4Delivery := TO_REAL(GVL_IO.aiTC4_DeliveryTemp)/10;
 
 // pressure calculations
 stProcessValues.rPt1Upstream := TO_REAL(GVL_IO.aiPT1_UpstreamPressure)/rCurrentMeasRange * rSensorPressRange;
+stProcessValues.rPt1Upstream := stProcessValues.rPt1Upstream - stProcessValues.rDiffPressureOffset;
 stProcessValues.rPt2Downstream := TO_REAL(GVL_IO.aiPT2_DownstreamPressure)/rCurrentMeasRange * rSensorPressRange;
 stProcessValues.rDiffPressure := stProcessValues.rPt1Upstream - stProcessValues.rPt2Downstream;
 

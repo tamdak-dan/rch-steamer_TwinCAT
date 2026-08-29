@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <DUT Name="ST_HmiSetpoints" Id="{a1b2c3d4-0006-4a5b-9c8d-e1f200000006}">
     <Declaration><![CDATA[//=============================================================================
 // ST_HmiSetpoints
@@ -16,7 +16,6 @@ STRUCT
 	bSetPurgeOnStartup	: BOOL;		// 
 	rSetFlow       		: REAL;  	// requested flow setpoint      [SLM]
     rSetDsPressure 		: REAL; 	// downstream pressure setpoint [Torr]
-    rSetSpaTemp    		: REAL;		// SPA temperature setpoint     [degC]
 	rSetElevation		: REAL;		// meters above seal level [MASL] 
 END_STRUCT
 END_TYPE

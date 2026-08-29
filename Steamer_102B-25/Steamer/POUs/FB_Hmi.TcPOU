@@ -8,10 +8,10 @@ VAR_INPUT
     stFaults        		: ST_Faults;              // from FB_FaultMonitor
     bReady          		: BOOL;                   // temps in band, ok to flow
 	
-	
     // arPidOutput     : ARRAY[1..6] OF REAL;    // loop outputs 0..100 %
     // arValveActual   : ARRAY[1..4] OF BOOL;    // real valve output states
     // stLimits        : ST_SetpointLimits;      // clamp ranges (defaults ok)
+	
 END_VAR
 VAR_OUTPUT
 	// one-cycle command pulses for MAIN / state machine
@@ -31,7 +31,7 @@ VAR_OUTPUT
 	bCmdDpLoopOff		: BOOL;
 	bCmdTempLoopOn		: BOOL;
 	bCmdTempLoopOff		: BOOL;
-	bSetpointsChanged	: BOOL;
+	bCmdApplySetpoints	: BOOL;
 	
 	// heartbeat supervision	
 	bHmiCommLoss    : BOOL;  // feed into ST_Faults.bHmiCommLoss
@@ -86,6 +86,7 @@ bCmdDpLoopOn   		:= GVL_HMI.stHmiCommand.bDpControlOn;
 bCmdDpLoopOff   	:= GVL_HMI.stHmiCommand.bDpControlOff;
 bCmdTempLoopOn 		:= GVL_HMI.stHmiCommand.bTempControlOn;
 bCmdTempLoopOff		:= GVL_HMI.stHmiCommand.bTempControlOff;
+bCmdApplySetpoints	:= GVL_HMI.stHmiCommand.bApplySetpoints;
 
 // clear stale cmds
 GVL_HMI.stHmiCommand.bSesOn      		:= FALSE;
@@ -104,6 +105,7 @@ GVL_HMI.stHmiCommand.bDpControlOn   	:= FALSE;
 GVL_HMI.stHmiCommand.bDpControlOff   	:= FALSE;
 GVL_HMI.stHmiCommand.bTempControlOff 	:= FALSE;
 GVL_HMI.stHmiCommand.bTempControlOn 	:= FALSE;
+GVL_HMI.stHmiCommand.bApplySetpoints	:= FALSE;
 
 // Safety interlock: ignore SES ON during comm-lost or active fault display;
 // the state machine makes the final call, this is belt-and-braces.
