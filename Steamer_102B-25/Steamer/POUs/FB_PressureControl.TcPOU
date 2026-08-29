@@ -222,7 +222,7 @@ IF bTempControlOff THEN
 ELSE
     IF bSample THEN
         arOutputPct[2] := RunPid(nLoop     := 2,
-                                 rSp       := stSetpoints.rSetSpaTemp,
+                                 rSp       := GVL_SysParameters.rSpaTempSp,
                                  rPv       := stProcess.rTc1Spa,
                                  rKp       := GVL_SysParameters.rPid2_Kp,
                                  rTi       := GVL_SysParameters.rPid2_Ti,

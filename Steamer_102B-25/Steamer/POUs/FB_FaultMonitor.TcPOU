@@ -451,6 +451,7 @@ stFaults.bDownstreamWarmupTimeout	:= FALSE;
 stFaults.bExtTempDecoupled			:= FALSE;
 stFaults.bExtTempLow				:= FALSE;
 stFaults.bWaterEmpty          		:= FALSE;
+stFaults.bWaterOverFill				:= FALSE;
 stFaults.bWaterFillTimeout          := FALSE;
 stFaults.bWaterDrainTimeout         := FALSE;
 stFaults.bWaterRegulationFault		:= FALSE;
@@ -459,6 +460,7 @@ stFaults.bDownstreamStartOverPress	:= FALSE;
 stFaults.bStartDpTimeout			:= FALSE;
 stFaults.bStartDpHardwareFault		:= FALSE;
 stFaults.bFlowFault					:= FALSE;
+stFaults.bHmiCommLoss				:= FALSE;
 
 // Filter timers must be cleared too, or a timer already at its preset will
 // re-trip on the very next scan regardless of the current input state.
