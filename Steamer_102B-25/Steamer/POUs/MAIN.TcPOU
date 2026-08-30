@@ -132,16 +132,6 @@ fbPurge(
 	bPurgeTimeout => GVL_HMI.stHmiStatus.stFaults.bPurgeTimeout
 );
 		
-fbPressureControl(
-	bEnable := fbStateMachine.bControlEnable,          
-	eState := fbStateMachine.eState,        
-	bDpControlOff := NOT fbStateMachine.bDpLoopEnable,
-	bTempControlOff := NOT fbStateMachine.bTempLoopEnable,
-	bExtHeaterEnable := fbStateMachine.bExtHeaterEnable,
-	stProcess := fbProcessCalcs.stProcessValues,
-	stSetpoints := GVL_HMI.stHmiSetpoints ,
-	bFlushed := fbSpaFlush.bSpaFlushed
-);
 
 fbSpaFlush(
 	bEnable := fbStateMachine.bSpaFlushEnable,
@@ -150,7 +140,17 @@ fbSpaFlush(
 	rAtmPressure := fbProcessCalcs.stProcessValues.rAtmPressure
 );
 	
-
+fbPressureControl(
+	bEnable := fbStateMachine.bControlEnable,          
+	eState := fbStateMachine.eState,        
+	bDpControlOff := NOT fbStateMachine.bDpLoopEnable,
+	bTempControlOff := NOT fbStateMachine.bTempLoopEnable,
+	bExtHeaterEnable := fbStateMachine.bExtHeaterEnable,
+	stProcess := fbProcessCalcs.stProcessValues,
+	stSetpoints := GVL_HMI.stHmiSetpoints ,
+	bFlushed := fbSpaFlush.bSpaFlushed,
+	bSpaPressurized := fbSpaFlush.bSpaPressurized
+);
 
 
 

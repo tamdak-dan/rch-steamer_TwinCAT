@@ -39,7 +39,7 @@
 FUNCTION_BLOCK FB_PressureControl
 VAR_INPUT
     bEnable             : BOOL;              // FB_StateMachine.bControlEnable
-    eState              : E_SystemState;     // needed to detect PurgeVessel
+    eState              : E_SystemState;     // needed to detect PurgeVessel & SpaFlush
     bDpControlOff       : BOOL;              // HMI/maint: suspend loop 1
     bTempControlOff     : BOOL;              // HMI/maint: suspend loop 2
     bExtHeaterEnable    : BOOL;              // HMI: external heater allowed
@@ -47,6 +47,7 @@ VAR_INPUT
     stSetpoints         : ST_HmiSetpoints;   // operator setpoints, already clamped by FB_Hmi
     rTargetDiffPressure : REAL;              // [Torr] from FB_FlowCalcs
 	bFlushed            : BOOL;
+	bSpaPressurized		: BOOL;				 // SPA at pressure
 END_VAR
 VAR_OUTPUT
     // --- heater demands -> FB_OutputHandler (single writer) ---------------
@@ -137,7 +138,12 @@ IF bPurging THEN
 ELSIF NOT bFlushed THEN
     // SPA not flushed yet: PT3 + initial dP. The state machine cycles the
     // boiler across this setpoint N times to flush the SPA before release.
-    rBoilerSpTarget := GVL_SysParameters.rAtmosphericPressure + GVL_SysParameters.rIniDeltaPressure;
+	IF NOT bSpaPressurized THEN
+		rBoilerSpTarget := GVL_SysParameters.rAtmosphericPressure + GVL_SysParameters.rIniDeltaPressure;
+	ELSE
+		rBoilerSpTarget := GVL_SysParameters.rAtmosphericPressure + GVL_SysParameters.rIniDeltaPressure/2;
+	END_IF
+    
 
 ELSE
     // Normal running: hold PT1 a target differential above PT2.
@@ -182,7 +188,7 @@ ELSE
     tPwmPeriod1 := GVL_SysParameters.tPid1PwmPeriod;
 	rDutyCap1 := 100.0 * UDINT_TO_REAL(TIME_TO_UDINT(GVL_SysParameters.tPid1MaxOnTime))
 			   / UDINT_TO_REAL(TIME_TO_UDINT(tPwmPeriod1));
-	rDutyCap1 := LIMIT(0.0, rDutyCap1, 100.0);
+	rDutyCap1 := LIMIT(0.0, rDutyCap1, 50.0);
 END_IF
 
 

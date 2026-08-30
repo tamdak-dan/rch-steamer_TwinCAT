@@ -23,11 +23,11 @@ VAR_GLOBAL
 	// --- Function Blocks ----------------------------------------------------
 
 	// FB_WaterFill
-		tDebounceTimer 			: TIME := T#1S;
+		tDebounceTimer 			: TIME := T#2S;
 		tStartupFillTimeout		: TIME := T#15M;
 		tFillConfirmDelay		: TIME := T#5S;
 		tAutoFillTimeout		: TIME := T#1M;
-		tAutoFillDelay			: TIME := T#10S;	
+		tAutoFillDelay			: TIME := T#4S;	
 	
 	// FB_Purge
 		rAtmosphericPressure	: REAL := 760; 							// [torr] default, calc'd in FB_Purge 
