@@ -262,13 +262,6 @@ bReqMaint      := FALSE;
 bReqExitMaint  := FALSE;
 bReqFaultReset := FALSE;]]></ST>
     </Implementation>
-    <Method Name="_DiffPressEstablished" Id="{b1f7aed4-a886-4a7b-bad9-cc81f3fbcb42}">
-      <Declaration><![CDATA[// TODO: real dP target from setpoints/params (legacy "Purge dP"/INI_SP).
-METHOD PRIVATE _DiffPressEstablished : BOOL]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[_DiffPressEstablished := (stProcessValues.rDiffPressure >= stHmiSetpoints.rSetDsPressure);]]></ST>
-      </Implementation>
-    </Method>
     <Method Name="_FlowInBand" Id="{7b34b003-618c-4463-9a96-27a32ac34e28}">
       <Declaration><![CDATA[METHOD PRIVATE _FlowInBand : BOOL]]></Declaration>
       <Implementation>
