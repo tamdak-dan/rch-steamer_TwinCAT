@@ -118,6 +118,7 @@ CASE eState OF
 		ELSE
             eState := E_SystemState.FillWater;
 			bColdStart := TRUE;
+			bSpaFlushReset := TRUE;
         END_IF
 
     //--------------------------------------------------------------------
@@ -177,6 +178,12 @@ CASE eState OF
     //--------------------------------------------------------------------
     E_SystemState.InitMain:         // S50 : final checks before flow
     //--------------------------------------------------------------------
+		IF bEntry THEN
+			IF GVL_HMI.stHmiSetpoints.rSetFlow = 0 THEN
+				GVL_HMI.stHmiSetpoints.rSetFlow := 10;
+			END_IF
+		END_IF
+
 		bInStartup     := TRUE;
 		bControlEnable := TRUE;
 		bSpaFlushEnable := TRUE;

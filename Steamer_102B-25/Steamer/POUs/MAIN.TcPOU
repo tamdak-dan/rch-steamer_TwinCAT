@@ -92,8 +92,6 @@ IF fbHmi.bCmdDpLoopOff THEN fbStateMachine.RequestDpLoop(FALSE); END_IF
 IF fbHmi.bCmdTempLoopOn THEN fbStateMachine.RequestTempLoop(TRUE); END_IF
 IF fbHmi.bCmdTempLoopOff THEN fbStateMachine.RequestTempLoop(FALSE); END_IF
 IF fbHmi.bCmdApplySetpoints THEN
-	IF GVL_HMI.stHmiSetpoints.rSetDsPressure < GVL_SysParameters.rP3AbsMin THEN GVL_HMI.stHmiSetpoints.rSetDsPressure := GVL_SysParameters.rP3AbsMin; END_IF
-	IF GVL_HMI.stHmiSetpoints.rSetDsPressure > GVL_SysParameters.rP3AbsMax THEN GVL_HMI.stHmiSetpoints.rSetDsPressure := GVL_SysParameters.rP3AbsMax; END_IF
 	IF GVL_HMI.stHmiSetpoints.rSetFlow < GVL_SysParameters.rFlowMin THEN GVL_HMI.stHmiSetpoints.rSetFlow := GVL_SysParameters.rFlowMin; END_IF
 	IF GVL_HMI.stHmiSetpoints.rSetFlow > GVL_SysParameters.rFlowMax THEN GVL_HMI.stHmiSetpoints.rSetFlow := GVL_SysParameters.rFlowMax; END_IF
 END_IF
@@ -117,6 +115,7 @@ fbStateMachine(
 
 fbWaterFill(
 	eMode := fbStateMachine.eWaterFillMode,
+	rSteamFlow := fbProcessCalcs.stProcessValues.rFlowActual,
 	bCenterSwitch := GVL_IO.biLS1_WaterMidLevel,
 	bEmptySwitch := GVL_IO.biLS3_WaterLowLevel,
 	bAutofillEnable := fbStateMachine.bAutofillEnable,

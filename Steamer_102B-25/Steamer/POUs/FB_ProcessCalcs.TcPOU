@@ -18,11 +18,12 @@ VAR
 	rDp12 				: REAL;
 	rDp23				: REAL;
 	rFlowActual			: REAL;
-	rOrificeA1			: REAL := 0.05946087;	// main orifice coefficient
+	rOrificeA1_25		: REAL := 0.05946087;	// main orifice coefficient
+	rOrificeA1_50		: REAL := 0.09;			// main orifice coefficient
 	rOrificeA2			: REAL := 0.001057082;	// condensate/drain path coefficient
 	rOrificeA3			: REAL := 0.01;			// SPA path coefficient
 	rOrificeB1			: REAL := 0.0;			// main orifice offset
-	rOrificeB2			: REAL := 0.0;			// condensate offset
+	rOrificeB2			: REAL := 0.0;	 		// condensate offset
 	rOrificeB3			: REAL := 40; 			// torr offset
 	
 END_VAR]]></Declaration>
@@ -60,8 +61,13 @@ END_IF
 
 // actual delivered flow 
 IF stProcessValues.rPt1Upstream > stProcessValues.rPt2Downstream THEN
-    rFlowActual := rOrificeA1 * SQRT(stProcessValues.rDiffPressure * stProcessValues.rPt2Downstream)
-           - rOrificeB1 - stProcessValues.rCondensateFlow;
+	IF gvl_HMi.stHmiSetpoints.bSetSize25L THEN
+		rFlowActual := rOrificeA1_25 * SQRT(stProcessValues.rDiffPressure * stProcessValues.rPt2Downstream)
+			   - rOrificeB1 - stProcessValues.rCondensateFlow;
+	ELSE
+		rFlowActual := rOrificeA1_50 * SQRT(stProcessValues.rDiffPressure * stProcessValues.rPt2Downstream)
+			   - rOrificeB1 - stProcessValues.rCondensateFlow;
+	END_IF
     stProcessValues.rFlowActual := MAX(rFlowActual, 0.0);
 ELSE
     stProcessValues.rFlowActual := 0.0;

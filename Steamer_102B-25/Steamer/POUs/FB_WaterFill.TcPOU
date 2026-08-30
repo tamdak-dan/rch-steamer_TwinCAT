@@ -33,6 +33,7 @@
 FUNCTION_BLOCK FB_WaterFill
 VAR_INPUT
     eMode            : E_WaterFillMode;   // StartupFill | RunningAutofill | Idle
+	rSteamFlow		 : REAL;
     bCenterSwitch    : BOOL;              // RAW LS1 center (X2). Filtered internally.
     bEmptySwitch     : BOOL;              // RAW LS3 empty  (X4). Filtered internally.
     bAutofillEnable  : BOOL;              // legacy X13 autofill-off signal
@@ -49,6 +50,10 @@ VAR
     tonCenterOff     : TON;
     tonEmptyOn       : TON;
     tonEmptyOff      : TON;
+	
+	// autofill switch delay timers
+	tonCenterOn_Autofill : TON;
+	tonCenterOff_Autofill : TON;
 
     // ---- startup fill (K8) -------------------------------------------------
     tonFillDwell     : TON; // fixed confirm (tFillConfirm = 5 s)
@@ -59,6 +64,28 @@ VAR
 
     ePrevMode        : E_WaterFillMode;
     bModeEntry       : BOOL;
+	
+	rWaterLevel		 : REAL;
+	rOutputPct		 : REAL;
+	rDrainFactor	 : REAL := 0.1;
+	rFillFactor	 	 : REAL := 1;
+	
+	// --- PID sample-rate gate -----------------------------------------------
+    fbSampleTick        : TON;
+    bSample             : BOOL;
+    rDt                 : REAL;              // [s] sample interval as a real
+	
+    // --- per-loop PID state (index = legacy PID number) --------------------
+    rIntegral          : REAL;
+    rPrevPv            : REAL;
+    rPrimed            : BOOL;
+
+    // --- per-loop PWM state -------------------------------------------------
+    tonPwmTimer          :  TON;
+    rPwmDutyLatched    :  REAL;
+
+    i                   : INT;
+	
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[// mode-entry edge: reset per-mode timers/faults when the mode changes so a
@@ -103,8 +130,11 @@ CASE eMode OF
         ELSE
             // --- LS1 covered: CLOSE valve immediately, run confirm dwell ---
             // (legacy rung 502: RST Y4 on the same rung TMR T24 starts)
-            qFillValve := FALSE;
-			bFillComplete := TRUE;
+            tonFillDwell(IN := bCenterFiltered, PT := GVL_SysParameters.tStartupFillDelay);
+			IF tonFillDwell.Q THEN
+				qFillValve := FALSE;
+				bFillComplete := TRUE;
+			END_IF
         END_IF
 
     //-- RUNNING AUTOFILL --------------------------------------
@@ -113,7 +143,7 @@ CASE eMode OF
 			tonAutoFillDwell(IN := FALSE);
         END_IF
 
-        IF NOT bAutofillEnable THEN
+        (*IF NOT bAutofillEnable THEN
             // autofill off -> valve closed, timers reset
             qFillValve := FALSE;    
 		ELSE
@@ -126,7 +156,43 @@ CASE eMode OF
 					qFillValve := FALSE;
 				END_IF
 			END_IF
-        END_IF
+        END_IF *)
+//----------------------------//
+
+		
+		fbSampleTick(IN := NOT fbSampleTick.Q, PT := GVL_SysParameters.tAutofillPidSample);
+		bSample := fbSampleTick.Q;
+		rDt     := UDINT_TO_REAL(TIME_TO_UDINT(GVL_SysParameters.tPidSampleTime)) * 0.001;
+				
+	
+		IF NOT bAutofillEnable THEN
+			qFillValve := FALSE;
+		ELSE
+			tonCenterOn_Autofill(IN := bCenterSwitch, PT := T#2M);
+			tonCenterOff_Autofill(IN := NOT bCenterSwitch, PT := T#2M);
+			
+			
+			IF bSample THEN
+				rOutputPct := RunPid(
+										 rSp       := 25,
+										 rPv       := rWaterLevel,
+										 rKp       := 5.0,
+										 rTi       := GVL_SysParameters.rPid1_Ti,
+										 rTd       := GVL_SysParameters.rPid1_Td,
+										 rOutMin   := 5.0,
+										 rOutMax   := 35.0,
+										 rDt       := rDt);
+										 
+				rWaterLevel := rWaterLevel - rSteamFlow * rDrainFactor + rOutputPct * rFillFactor;
+				rWaterLevel := LIMIT(0.0, rWaterLevel, 100.0);
+			END_IF
+			
+			IF tonCenterOn_Autofill.Q THEN rOutputPct := 0; END_IF
+			IF tonCenterOff_Autofill.Q THEN rOutputPct := 35; END_IF
+			qFillValve := RunPwm(rDutyPct := rOutputPct);
+				 
+	
+		END_IF
 
     //-- IDLE --------------------------------------------------------------
     ELSE
@@ -135,5 +201,127 @@ CASE eMode OF
 END_CASE
 ]]></ST>
     </Implementation>
+    <Method Name="RunPid" Id="{ff5d583e-7b66-4aaa-8892-ff27f8466e00}">
+      <Declaration><![CDATA[//=============================================================================
+// RunPid
+//-----------------------------------------------------------------------------
+// Standard (ISA) positional PID, output in percent.
+//
+//   out = Kp * e  +  (Kp/Ti) * INTEGRAL(e)  -  Kp * Td * d(PV)/dt
+//
+// Derivative acts on the MEASUREMENT, not the error, so a setpoint change
+// does not produce a derivative spike.
+//
+// Anti-windup: the integral accumulator is clamped to the output range. This
+// is the same trick as legacy rung 456 ("freeze integral if over"), which
+// clamped the PID bias word to the output maximum.
+//
+// State lives in the FB's arrays, indexed by nLoop, so one method serves
+// every loop. Call at the sample rate only - it uses rDt, not the task cycle.
+//=============================================================================
+METHOD PRIVATE RunPid : REAL
+VAR_INPUT
+    rSp     : REAL;     // setpoint, engineering units
+    rPv     : REAL;     // process value, same units
+    rKp     : REAL;     // proportional gain [% per engineering unit]
+    rTi     : REAL;     // integral / reset time [s]. 0 disables integral action
+    rTd     : REAL;     // derivative / rate time [s]. 0 disables derivative
+    rOutMin : REAL;     // output floor [%]
+    rOutMax : REAL;     // output ceiling [%]
+    rDt     : REAL;     // sample interval [s]
+END_VAR
+VAR_INST
+    rError  : REAL;
+    rProp   : REAL;
+    rDeriv  : REAL;
+    rOut    : REAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[rError := rSp - rPv;
+
+//--- proportional ------------------------------------------------------------
+rProp := rKp * rError;
+
+//--- integral ----------------------------------------------------------------
+IF rTi > 0.0 THEN
+    rIntegral := rIntegral + (rKp / rTi) * rError * rDt;
+    // clamp to the output range: prevents wind-up while saturated
+    rIntegral := LIMIT(rOutMin, rIntegral, rOutMax);
+ELSE
+    rIntegral := 0.0;
+END_IF
+
+//--- derivative on measurement ------------------------------------------------
+// Skipped on the first sample after a reset, when arPrevPv is meaningless.
+IF (rTd > 0.0) AND rPrimed THEN
+    rDeriv := -rKp * rTd * (rPv - rPrevPv) / rDt;
+ELSE
+    rDeriv := 0.0;
+END_IF
+rPrevPv := rPv;
+rPrimed := TRUE;
+
+//--- sum and clamp ------------------------------------------------------------
+rOut   := rProp + rIntegral + rDeriv;
+RunPid := LIMIT(rOutMin, rOut, rOutMax);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RunPwm" Id="{c2920856-c963-4f85-af48-7fb40cb94704}">
+      <Declaration><![CDATA[//=============================================================================
+// RunPwm
+//-----------------------------------------------------------------------------
+// Time-proportioned output: turns a 0..100 % demand into a digital heater
+// command with a fixed period. 
+//
+// The demand is LATCHED at each period boundary. Without this the
+// on-time would move underneath an in-progress pulse.
+//
+// Must be called EVERY task cycle - the period timer only advances when it
+// is called. Resolution is one task cycle (10 ms), so a 2 s period gives
+// 0.5 % granularity.
+//=============================================================================
+METHOD PRIVATE RunPwm : BOOL
+VAR_INPUT
+    rDutyPct : REAL;    // demand 0..100 %
+    
+END_VAR
+VAR_INST
+	tPeriod   : TIME := T#2S;    
+    nPeriodMs : UDINT;
+    nOnMs     : UDINT;
+    rDuty     : REAL;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[nPeriodMs := TIME_TO_UDINT(tPeriod);
+
+//--- free-running period timer -----------------------------------------------
+// IN := NOT Q self-restarts the TON: Q is true for one cycle, which drops IN,
+// which clears ET. Costs one task cycle per period (0.5 % at 2 s).
+tonPwmTimer(IN := NOT tonPwmTimer.Q, PT := tPeriod);
+
+//--- latch the demand once per period ----------------------------------------
+// ET is only zero at a period boundary (and on the very first call), so this
+// refreshes the on-time exactly once per pulse and never mid-pulse.
+IF tonPwmTimer.ET = T#0S THEN
+    rDuty := rDutyPct;
+END_IF
+
+rDuty := LIMIT(0.0, rDuty, 100.0);
+
+//--- resolve the pulse --------------------------------------------------------
+IF rDuty <= 0.0 THEN
+    RunPwm := FALSE;
+ELSIF rDuty >= 100.0 THEN
+    // Special-cased so a saturated loop holds the coil solid instead of
+    // dropping out for the single cycle it takes the timer to roll over.
+    RunPwm := TRUE;
+ELSE
+    nOnMs  := REAL_TO_UDINT(rDuty * 0.01 * UDINT_TO_REAL(nPeriodMs));
+    RunPwm := TIME_TO_UDINT(tonPwmTimer.ET) < nOnMs;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
   </POU>
 </TcPlcObject>

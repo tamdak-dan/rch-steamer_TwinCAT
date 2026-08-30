@@ -27,7 +27,9 @@ VAR_GLOBAL
 		tStartupFillTimeout		: TIME := T#15M;
 		tFillConfirmDelay		: TIME := T#5S;
 		tAutoFillTimeout		: TIME := T#1M;
+		tStartupFillDelay		: TIME := T#10s;
 		tAutoFillDelay			: TIME := T#4S;	
+		tAutofillPidSample		: TIME := T#1s;
 	
 	// FB_Purge
 		rAtmosphericPressure	: REAL := 760; 							// [torr] default, calc'd in FB_Purge 

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <POU Name="FB_SpaFlush" Id="{7c41ea90-2b6d-4f18-9a53-1c8ef0d24b77}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_SpaFlush // VERIFIED 8.9.26 DASH
 VAR_INPUT
@@ -17,7 +17,7 @@ END_VAR
 
 VAR
     tonConfirm      	: TON;    // falling-edge confirm dwell (legacy T6)
-	tConfirmDelay		: TIME := T#1S;
+	tConfirmDelay		: TIME := T#10S;
     rSpaFlushPressure	: REAL;
 	nFlushCycles		: UINT := 20;
 END_VAR]]></Declaration>
