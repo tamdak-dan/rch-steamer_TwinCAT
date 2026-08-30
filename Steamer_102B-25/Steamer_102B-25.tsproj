@@ -47,14 +47,15 @@
 		</System>
 		<Plc>
 			<Project GUID="{0620E3FE-F520-43EC-B6C2-27AFBA942A9A}" Name="Steamer" PrjFilePath="Steamer\Steamer.plcproj" TmcFilePath="Steamer\Steamer.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{D2D23653-C73C-5177-56B9-8607BBA9F86A}" TmcPath="Steamer\Steamer.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{9BB8A6E7-7F57-6D55-74AE-76030AC5F49E}" TmcPath="Steamer\Steamer.tmc">
 					<Name>Steamer Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
 						<Name>PlcTask Outputs</Name>
 						<Var>
 							<Name>GVL_IO.boSV1_DrainValve</Name>
-							<Comment><![CDATA[ binary outputs       	]]></Comment>
+							<Comment><![CDATA[biPS1_						AT %I* : BOOL;
+ binary outputs       	]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
@@ -85,24 +86,13 @@
 							<Name>GVL_IO.boH4_ExternalHeater</Name>
 							<Type>BOOL</Type>
 						</Var>
-						<Var>
-							<Name>GVL_IO.boLED1_ReadyLight</Name>
-							<Type>BOOL</Type>
-						</Var>
-						<Var>
-							<Name>GVL_IO.boLED2_AlarmLight</Name>
-							<Type>BOOL</Type>
-						</Var>
 					</Vars>
 					<Vars VarGrpType="1">
 						<Name>PlcTask Inputs</Name>
 						<Var>
-							<Name>GVL_IO.biPowerFault</Name>
-							<Comment><![CDATA[ binary inputs]]></Comment>
-							<Type>BOOL</Type>
-						</Var>
-						<Var>
 							<Name>GVL_IO.biTankFloodFault</Name>
+							<Comment><![CDATA[ binary inputs
+biPowerFault				AT %I* : BOOL;]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
@@ -118,12 +108,10 @@
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
-							<Name>GVL_IO.biPS1_</Name>
-							<Type>BOOL</Type>
-						</Var>
-						<Var>
 							<Name>GVL_IO.aiPT1_UpstreamPressure</Name>
-							<Comment><![CDATA[ analog inputs]]></Comment>
+							<Comment><![CDATA[boLED1_ReadyLight			AT %Q* : BOOL;
+boLED2_AlarmLight			AT %Q* : BOOL;
+ analog inputs]]></Comment>
 							<Type>INT</Type>
 						</Var>
 						<Var>
@@ -704,7 +692,6 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 				<Link VarA="PlcTask Inputs^GVL_IO.biLS1_WaterMidLevel" VarB="Channel 3^Input"/>
 				<Link VarA="PlcTask Inputs^GVL_IO.biLS2_WaterHighLevel" VarB="Channel 4^Input"/>
 				<Link VarA="PlcTask Inputs^GVL_IO.biLS3_WaterLowLevel" VarB="Channel 5^Input"/>
-				<Link VarA="PlcTask Inputs^GVL_IO.biPowerFault" VarB="Channel 1^Input"/>
 				<Link VarA="PlcTask Inputs^GVL_IO.biTankFloodFault" VarB="Channel 2^Input"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 3 (EL2008)">

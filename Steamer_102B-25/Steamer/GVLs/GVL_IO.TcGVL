@@ -5,12 +5,12 @@
 VAR_GLOBAL
 	
 	// binary inputs
-	biPowerFault				AT %I* : BOOL;
+	//biPowerFault				AT %I* : BOOL;
 	biTankFloodFault			AT %I* : BOOL;
 	biLS1_WaterMidLevel			AT %I* : BOOL;
 	biLS2_WaterHighLevel		AT %I* : BOOL;
 	biLS3_WaterLowLevel			AT %I* : BOOL;
-	biPS1_						AT %I* : BOOL;
+	//biPS1_						AT %I* : BOOL;
 	                        	
 	// binary outputs       	
 	boSV1_DrainValve			AT %Q* : BOOL;
@@ -21,8 +21,8 @@ VAR_GLOBAL
 	boH2_SpaHeater				AT %Q* : BOOL;
 	boH3_FlowmeterHeater		AT %Q* : BOOL;
 	boH4_ExternalHeater			AT %Q* : BOOL;
-	boLED1_ReadyLight			AT %Q* : BOOL;
-	boLED2_AlarmLight			AT %Q* : BOOL;
+	//boLED1_ReadyLight			AT %Q* : BOOL;
+	//boLED2_AlarmLight			AT %Q* : BOOL;
 	
 	// analog inputs
 	aiPT1_UpstreamPressure		AT %I* : INT;

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
   <GVL Name="GVL_SysParameters" Id="{410e5bc5-dbe8-44c0-bfab-b5480c733766}">
-    <Declaration><![CDATA[{attribute 'qualified_only'}
+    <Declaration><![CDATA[   {attribute 'qualified_only'}
 // ------------------------- persisent vars -----------------------------------
 VAR_GLOBAL
 	

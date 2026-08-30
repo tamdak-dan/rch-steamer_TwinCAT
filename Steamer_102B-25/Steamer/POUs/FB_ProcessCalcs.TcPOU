@@ -72,7 +72,6 @@ stProcessValues.bWaterHigh := GVL_IO.biLS2_WaterHighLevel;
 stProcessValues.bWaterFull := GVL_IO.biLS1_WaterMidLevel AND NOT GVL_IO.biLS2_WaterHighLevel;
 stProcessValues.bWaterLow := GVL_IO.biLS3_WaterLowLevel AND NOT GVL_IO.biLS1_WaterMidLevel;
 stProcessValues.bWaterEmpty := NOT GVL_IO.biLS3_WaterLowLevel;
-stProcessValues.bPowerFaultSensor := GVL_IO.biPowerFault;
 stProcessValues.bCabinetFloodSensor  := GVL_IO.biTankFloodFault;
 
 GVL_HMI.stHmiStatus.stProcess := stProcessValues;]]></ST>

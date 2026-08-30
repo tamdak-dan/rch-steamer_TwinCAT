@@ -60,9 +60,10 @@ ELSE
 	tonHbTimeout(IN := FALSE);
 END_IF
 
-bHmiCommLoss := tonHbTimeout.Q;
+// DISABLED FOR 8.29.26 COMISSIONING
+(*bHmiCommLoss := tonHbTimeout.Q;
 nLastHeartbeat := GVL_HMI.stHmiCommand.nHmiHeartbeat;
-bFirstCycle := FALSE;
+bFirstCycle := FALSE;*)
 
 //=========================== 2. Consume command pulses ========================
 // Latch each request to the output for exactly one cycle, then clear the

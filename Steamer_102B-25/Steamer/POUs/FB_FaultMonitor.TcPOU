@@ -174,10 +174,11 @@ IF tonDsOverTemp.Q THEN
 END_IF
 
 //--- HMI communication loss. New in this system; no legacy equivalent. ------
-IF NOT bHmiHeartbeatOk THEN
+// DISABLED FOR 8.29.26 COMISSIONING
+(*IF NOT bHmiHeartbeatOk THEN
     stFaults.bHmiCommLoss := TRUE;
     _Report(E_FaultId.HmiCommLoss);
-END_IF
+END_IF*)
 
 //=============================================================================
 // WARM-UP FAULTS - only while the heater loops are enabled
