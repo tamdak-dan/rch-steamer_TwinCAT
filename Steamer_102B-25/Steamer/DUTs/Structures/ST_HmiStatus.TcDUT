@@ -33,6 +33,7 @@ STRUCT
 	
 	// --- Faults -------------------------------------------------------------
 	stFaults			: ST_Faults;			// process faults
+	aActiveFaults		: ARRAY[1..2, 1..5] OF STRING(30);
 
     // --- PID loop outputs [0..100 %] (Run page bars) ------------------------
     arPidOutput     	: ARRAY[1..6] OF REAL;  // 1 dP, 2 SPA temp, 3 heater, 4 water, 5 FM temp, 6 spare

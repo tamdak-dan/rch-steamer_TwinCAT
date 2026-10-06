@@ -71,6 +71,7 @@ fbHmi(
 	eState      				:= fbStateMachine.eState,
     stProcess   				:= fbProcessCalcs.stProcessValues,
 	stFaults					:= fbFaultMonitor.stFaults,
+	aActiveFaults				:= fbFaultMonitor.aActiveFaults,
 	bReady 						:= fbStateMachine.bReady
 );
 	  

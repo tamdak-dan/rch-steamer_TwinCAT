@@ -7,6 +7,7 @@ VAR_INPUT
     stProcess       		: ST_ProcessValues;
     stFaults        		: ST_Faults;              // from FB_FaultMonitor
     bReady          		: BOOL;                   // temps in band, ok to flow
+	aActiveFaults		: ARRAY[1..2, 1..5] OF STRING(30);
 	
     // arPidOutput     : ARRAY[1..6] OF REAL;    // loop outputs 0..100 %
     // arValveActual   : ARRAY[1..4] OF BOOL;    // real valve output states
@@ -51,7 +52,8 @@ END_VAR
 
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[//=========================== 1. Heartbeat supervision =========================
+      <ST><![CDATA[
+//=========================== 1. Heartbeat supervision =========================
 // Pi increments stCommand.nHmiHeartbeat every poll. If it stops changing
 // for T_HMI_HEARTBEAT_TIMEOUT, declare comm loss.
 IF (GVL_HMI.stHmiCommand.nHmiHeartbeat = nLastHeartbeat) AND NOT bFirstCycle THEN
@@ -61,9 +63,9 @@ ELSE
 END_IF
 
 // DISABLED FOR 8.29.26 COMISSIONING
-(*bHmiCommLoss := tonHbTimeout.Q;
+bHmiCommLoss := tonHbTimeout.Q;
 nLastHeartbeat := GVL_HMI.stHmiCommand.nHmiHeartbeat;
-bFirstCycle := FALSE;*)
+bFirstCycle := FALSE;
 
 //=========================== 2. Consume command pulses ========================
 // Latch each request to the output for exactly one cycle, then clear the
@@ -123,42 +125,10 @@ GVL_HMI.stHmiStatus.eState       := eState;
 GVL_HMI.stHmiStatus.sStateName   := TO_STRING(eState);
 GVL_HMI.stHmiStatus.bReady       := bReady;
 
+GVL_HMI.stHmiStatus.stFaults     := stFaults;
+GVL_HMI.stHmiStatus.bAlarmActive := stFaults.bAnyFault;
+GVL_HMI.stHmiStatus.aActiveFaults := aActiveFaults;
 GVL_HMI.stHmiStatus.stProcess    := stProcess;
-(* IF stProcess.rFlowRated > 0.0 THEN
-    GVL_HMI.stStatus.rFlowPercent := 100.0 * stProcess.rFlowActual / stProcess.rFlowRated;
-ELSE
-    GVL_HMI.stStatus.rFlowPercent := 0.0;
-END_IF
-
-FOR i := 1 TO 6 DO
-    GVL_HMI.stStatus.arPidOutput[i] := arPidOutput[i];
-END_FOR
-
-GVL_HMI.stStatus.stFaults := stFaults;
-GVL_HMI.stStatus.stFaults.bHmiCommLoss := bHmiCommLoss;
-
-// count active fault bytes (pack_mode 1: one BOOL per byte)
-nFaultCount := 0;
-pFaultByte := ADR(GVL_HMI.stStatus.stFaults);
-FOR i := 0 TO TO_INT(SIZEOF(ST_Faults)) - 1 DO
-    IF pFaultByte[i] <> 0 THEN
-        nFaultCount := nFaultCount + 1;
-    END_IF
-END_FOR
-GVL_HMI.stStatus.nActiveFaults := nFaultCount;
-GVL_HMI.stStatus.bAlarmActive  := (nFaultCount > 0);
-
-GVL_HMI.stStatus.rSetFlowApplied    := stSetpoints.rSetFlow;
-GVL_HMI.stStatus.rSetDsPressApplied := stSetpoints.rSetDsPressure;
-GVL_HMI.stStatus.rSetSpaTempApplied := stSetpoints.rSetSpaTemp;
-
-GVL_HMI.stStatus.bMaintModeActive := (eState = E_SystemState.Maintenance);
-FOR i := 1 TO 4 DO
-    GVL_HMI.stStatus.arValveState[i] := arValveActual[i];
-END_FOR
-GVL_HMI.stStatus.bLoopbackOn  := bLoopbackOn;
-GVL_HMI.stStatus.bDrainModeOn := bDrainMode; *)
-
 GVL_HMI.stHmiStatus.sPlcVersion := GVL_HMI.S_PLC_VERSION;
 
 // uptime counter (1 s self-retriggering tick)
