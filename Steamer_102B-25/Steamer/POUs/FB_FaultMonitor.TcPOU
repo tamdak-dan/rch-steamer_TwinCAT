@@ -384,14 +384,11 @@ bAnyFaultPrev     := stFaults.bAnyFault;]]></ST>
 METHOD PRIVATE _Report
 VAR_INPUT
     eErrorID		: E_FaultId;
-	
 END_VAR
 
 VAR
 	i				: DINT;
 	sErrorString	: STRING(30);
-	fbGetSystemTime	: GETSYSTEMTIME;
-	fileTime		: T_FILETIME;
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[IF aActiveFaults[1, UPPER_BOUND(aActiveFaults, 2)] = '' THEN
@@ -403,8 +400,7 @@ END_VAR]]></Declaration>
 			// store error
 			aActiveFaults[1,i] := sErrorString;
 			// grab and store timestamp
-			fbGetSystemTime(timeLoDW=>fileTime.dwLowDateTime, timeHiDW=>fileTime.dwHighDateTime );
-			aActiveFaults[2,i] := SYSTEMTIME_TO_STRING( FILETIME_TO_SYSTEMTIME( fileTime ) );
+			aActiveFaults[2,i] := DT_TO_STRING(GVL_HMI.stHmiStatus.dtNow);
 			EXIT;
 		END_IF
 	END_FOR
