@@ -34,6 +34,8 @@ VAR
 	
 	// system page
 	ntSetLocalTime				: NT_SetLocalTime;
+	tonSetTimeDelay				: TON;
+	tSetTimeDelay				: TIME := T#250MS;
 	
 END_VAR
 ]]></Declaration>
@@ -99,15 +101,32 @@ IF fbHmi.bCmdApplySetpoints THEN
 	IF GVL_HMI.stHmiSetpoints.rSetFlow < GVL_SysParameters.rFlowMin THEN GVL_HMI.stHmiSetpoints.rSetFlow := GVL_SysParameters.rFlowMin; END_IF
 	IF GVL_HMI.stHmiSetpoints.rSetFlow > GVL_SysParameters.rFlowMax THEN GVL_HMI.stHmiSetpoints.rSetFlow := GVL_SysParameters.rFlowMax; END_IF
 END_IF
+
+// handling of clock set from HMI
 IF fbHmi.bCmdSetTime OR GVL_HMI.stHmiStatus.nSetTimeState <> 0 THEN 
 	IF fbHmi.bCmdSetTime THEN 
 		GVL_HMI.stHmiStatus.nSetTimeState := 1;
-	ELSIF GVL_HMI.stHmiStatus.nSetTimeState = 1 THEN
-		ntSetLocalTime(TIMESTR := DT_TO_SYSTEMTIME(GVL_HMI.stHmiCommand.dtSetTime), Start := TRUE);
-		IF ntSetLocalTime.ERR THEN 
-			GVL_HMI.stHmiStatus.nSetTimeState := 3;
-		ELSIF NOT ntSetLocalTime.BUSY THEN 
-			GVL_HMI.stHmiStatus.nSetTimeState := 2; 
+	ELSIF GVL_HMI.stHmiStatus.nSetTimeState <> 0 THEN
+		tonSetTimeDelay(IN := TRUE, PT := tSetTimeDelay);
+		IF tonSetTimeDelay.Q THEN
+			tonSetTimeDelay(IN := FALSE);
+			IF GVL_HMI.stHmiStatus.nSetTimeState = 1 THEN
+				ntSetLocalTime(TIMESTR := DT_TO_SYSTEMTIME(GVL_HMI.stHmiCommand.dtSetTime), Start := TRUE);
+				IF ntSetLocalTime.ERR THEN
+					GVL_HMI.stHmiStatus.nSetTimeState := 3;
+				ELSIF NOT ntSetLocalTime.BUSY THEN
+					GVL_HMI.stHmiStatus.nSetTimeState := 2; 
+				END_IF
+			ELSE
+				ntSetLocalTime(START := FALSE);
+				IF GVL_HMI.stHmiStatus.nSetTimeState = 2 THEN
+					GVL_HMI.stHmiStatus.nSetTimeState := 0;
+				ELSIF GVL_HMI.stHmiStatus.nSetTimeState = 3 THEN
+					IF fbFaultMonitor.stFaults.bTimeSetFault THEN
+						GVL_HMI.stHmiStatus.nSetTimeState := 0;
+					END_IF
+				END_IF			
+			END_IF
 		END_IF
 	END_IF
 END_IF

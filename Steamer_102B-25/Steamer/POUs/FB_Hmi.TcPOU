@@ -141,8 +141,6 @@ GVL_HMI.stHmiStatus.sPlcVersion 	:= GVL_HMI.S_PLC_VERSION;
 // capture PLC system time
 fbTime();
 IF fbTime.bValid THEN GVL_HMI.stHmiStatus.dtNow := SYSTEMTIME_TO_DT(fbTime.systemTime); END_IF
-// reset successful time set
-IF GVL_HMI.stHmiStatus.nSetTimeState = 2 THEN GVL_HMI.stHmiStatus.nSetTimeState := 0; END_IF
 
 // uptime counter (1 s self-retriggering tick)
 fbTick(IN := NOT fbTick.Q, PT := T#1S);
