@@ -65,7 +65,10 @@ TYPE E_FaultId :
     FlowRateError           := 61,
 
     // --- new in this system ---------------------------------------------
-    HmiCommLoss             := 300
+	HmiCommLoss             := 300,
+	TimeSetFault			:= 301
+	
+	
 ) INT;
 END_TYPE
 ]]></Declaration>

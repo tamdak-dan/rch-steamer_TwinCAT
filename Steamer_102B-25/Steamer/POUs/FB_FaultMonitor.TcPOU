@@ -3,6 +3,9 @@
   <POU Name="FB_FaultMonitor" Id="{1f8b8785-9781-4f77-85e6-df1d5973ba68}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_FaultMonitor
 VAR_INPUT
+
+	bTestMode			: BOOL := FALSE;	// bit for testing PLC without inputs wired	
+
     // --- scaled process values ------------------------------------------
     stProcess           : ST_ProcessValues;
 
@@ -90,7 +93,7 @@ END_IF
 
 //--- Cabinet flood. Sensor is normally closed, so LOSS of the input is the
 //    alarm condition. A severed cable trips the fault, which is the intent.
-IF NOT stProcess.bCabinetFloodSensor THEN
+IF NOT stProcess.bCabinetFloodSensor AND NOT bTestMode THEN
     stFaults.bCabinetFlood := TRUE;
     _Report(E_FaultId.CabinetFlood);
 END_IF
@@ -129,14 +132,14 @@ bSensorHwInhibit := (eState = E_SystemState.Fault);
 
 tonPt1Bad(IN := (stProcess.rPt1Upstream < GVL_SysParameters.rPtMininum) AND NOT bSensorHwInhibit,
           PT := tGeneral_250ms);
-IF tonPt1Bad.Q THEN
+IF tonPt1Bad.Q AND NOT bTestMode THEN
     stFaults.bPt1HardwareFault := TRUE;
     _Report(E_FaultId.Pt1Hardware);
 END_IF
 
 tonPt2Bad(IN := (stProcess.rPt2Downstream < GVL_SysParameters.rPtMininum) AND NOT bSensorHwInhibit,
           PT := tGeneral_250ms);
-IF tonPt2Bad.Q THEN
+IF tonPt2Bad.Q AND NOT bTestMode THEN
     stFaults.bPt2HardwareFault := TRUE;
     _Report(E_FaultId.Pt2Hardware);
 END_IF
@@ -145,14 +148,14 @@ END_IF
 //    NOTE: the legacy latched NO bit for any of these four - it only pushed a
 //    message and jumped. Named latches added so bAnyFault is truthful.
 tonSpaOverTemp(IN := stProcess.rTc1Spa > GVL_SysParameters.rMaxTemp, PT := tGeneral_10s);
-IF tonSpaOverTemp.Q THEN
+IF tonSpaOverTemp.Q AND NOT bTestMode THEN
     stFaults.bSpaOverTemp := TRUE;
     _Report(E_FaultId.SpaOverTemp);
 END_IF
 
 tonFmOverTemp(IN := stProcess.rTc2FlowMeter > GVL_SysParameters.rMaxTemp,
               PT := tGeneral_10s);
-IF tonFmOverTemp.Q THEN
+IF tonFmOverTemp.Q AND NOT bTestMode THEN
     stFaults.bFlowMeterOverTemp := TRUE;
     _Report(E_FaultId.FlowMeterOverTemp);
 END_IF
@@ -168,13 +171,12 @@ END_IF
 
 tonDsOverTemp(IN := stProcess.rTc4Delivery > GVL_SysParameters.rMaxTemp,
               PT := tGeneral_10s);
-IF tonDsOverTemp.Q THEN
+IF tonDsOverTemp.Q AND NOT bTestMode THEN
     stFaults.bDownstreamOverTemp := TRUE;
     _Report(E_FaultId.DownstreamOverTemp);
 END_IF
 
 //--- HMI communication loss. New in this system; no legacy equivalent. ------
-// DISABLED FOR 8.29.26 COMISSIONING
 IF NOT bHmiHeartbeatOk THEN
     stFaults.bHmiCommLoss := TRUE;
     _Report(E_FaultId.HmiCommLoss);
@@ -309,7 +311,7 @@ END_IF
 // equalised to atmosphere - at that point both transducers must agree, and
 // must agree with atmospheric pressure. Any disagreement means one of them has
 // drifted, and every downstream flow calculation would inherit the error.
-IF eState = E_SystemState.FillWater THEN
+IF eState = E_SystemState.FillWater AND NOT bTestMode THEN
     IF (stProcess.rPt2Downstream > GVL_SysParameters.rP3AbsMax)
        OR (stProcess.rPt2Downstream < GVL_SysParameters.rP3AbsMin)
 	   OR (ABS(stProcess.rDiffPressureOffset) > GVL_SysParameters.rPtMaxVariance) THEN
@@ -338,8 +340,20 @@ IF tonFlowRatio.Q THEN
     _Report(E_FaultId.FlowRateError);
 END_IF
 
+
 //=============================================================================
-// 8. AGGREGATE
+// 8. System
+//=============================================================================
+IF GVL_HMI.stHmiStatus.nSetTimeState = 3 THEN
+	stFaults.bTimeSetFault := TRUE;
+	_Report(E_FaultId.TimeSetFault);
+	GVL_HMI.stHmiStatus.nSetTimeState := 0;
+END_IF
+
+
+
+//=============================================================================
+// AGGREGATE
 //=============================================================================
 stFaults.bAnyFault :=
       stFaults.bPowerFault           	 	OR stFaults.bCabinetFlood
@@ -355,7 +369,7 @@ stFaults.bAnyFault :=
    	OR stFaults.bWaterRegulationFault		OR stFaults.bPurgeTimeout           		
 	OR stFaults.bDownstreamStartOverPress	OR stFaults.bStartDpTimeout     			
 	OR stFaults.bFlowFault					OR stFaults.bStartDpHardwareFault		
-	OR stFaults.bHmiCommLoss;
+	OR stFaults.bHmiCommLoss				OR stFaults.bTimeSetFault;
 
 bAnyLatchingFault := stFaults.bAnyFault;
 bAnyFaultPrev     := stFaults.bAnyFault;]]></ST>
@@ -462,6 +476,7 @@ stFaults.bStartDpTimeout			:= FALSE;
 stFaults.bStartDpHardwareFault		:= FALSE;
 stFaults.bFlowFault					:= FALSE;
 stFaults.bHmiCommLoss				:= FALSE;
+stFaults.bTimeSetFault				:= FALSE;
 
 // Filter timers must be cleared too, or a timer already at its preset will
 // re-trip on the very next scan regardless of the current input state.

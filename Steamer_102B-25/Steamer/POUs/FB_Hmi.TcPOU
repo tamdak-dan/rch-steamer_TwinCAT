@@ -33,6 +33,7 @@ VAR_OUTPUT
 	bCmdTempLoopOn		: BOOL;
 	bCmdTempLoopOff		: BOOL;
 	bCmdApplySetpoints	: BOOL;
+	bCmdSetTime			: BOOL;
 	
 	// heartbeat supervision	
 	bHmiCommLoss    : BOOL;  // feed into ST_Faults.bHmiCommLoss
@@ -43,6 +44,10 @@ VAR
     nLastHeartbeat  : UDINT;
     tonHbTimeout    : TON;
     bFirstCycle     : BOOL := TRUE;
+	
+	// system time
+    fbTime   : FB_LocalSystemTime := ( bEnable := TRUE, dwCycle := 1 );
+    logTimer : TON := ( IN := TRUE, PT := T#500ms );
 	
 	// uptime
     tonUptime       : TON;
@@ -62,7 +67,7 @@ ELSE
 	tonHbTimeout(IN := FALSE);
 END_IF
 
-// DISABLED FOR 8.29.26 COMISSIONING
+// heartbeat check
 bHmiCommLoss := tonHbTimeout.Q;
 nLastHeartbeat := GVL_HMI.stHmiCommand.nHmiHeartbeat;
 bFirstCycle := FALSE;
@@ -90,6 +95,7 @@ bCmdDpLoopOff   	:= GVL_HMI.stHmiCommand.bDpControlOff;
 bCmdTempLoopOn 		:= GVL_HMI.stHmiCommand.bTempControlOn;
 bCmdTempLoopOff		:= GVL_HMI.stHmiCommand.bTempControlOff;
 bCmdApplySetpoints	:= GVL_HMI.stHmiCommand.bApplySetpoints;
+bCmdSetTime			:= GVL_HMI.stHmiCommand.bSetTime;
 
 // clear stale cmds
 GVL_HMI.stHmiCommand.bSesOn      		:= FALSE;
@@ -109,6 +115,7 @@ GVL_HMI.stHmiCommand.bDpControlOff   	:= FALSE;
 GVL_HMI.stHmiCommand.bTempControlOff 	:= FALSE;
 GVL_HMI.stHmiCommand.bTempControlOn 	:= FALSE;
 GVL_HMI.stHmiCommand.bApplySetpoints	:= FALSE;
+GVL_HMI.stHmiCommand.bSetTime			:= FALSE;
 
 // Safety interlock: ignore SES ON during comm-lost or active fault display;
 // the state machine makes the final call, this is belt-and-braces.
@@ -125,11 +132,17 @@ GVL_HMI.stHmiStatus.eState       := eState;
 GVL_HMI.stHmiStatus.sStateName   := TO_STRING(eState);
 GVL_HMI.stHmiStatus.bReady       := bReady;
 
-GVL_HMI.stHmiStatus.stFaults     := stFaults;
-GVL_HMI.stHmiStatus.bAlarmActive := stFaults.bAnyFault;
-GVL_HMI.stHmiStatus.aActiveFaults := aActiveFaults;
-GVL_HMI.stHmiStatus.stProcess    := stProcess;
-GVL_HMI.stHmiStatus.sPlcVersion := GVL_HMI.S_PLC_VERSION;
+GVL_HMI.stHmiStatus.stFaults     	:= stFaults;
+GVL_HMI.stHmiStatus.bAlarmActive 	:= stFaults.bAnyFault;
+GVL_HMI.stHmiStatus.aActiveFaults 	:= aActiveFaults;
+GVL_HMI.stHmiStatus.stProcess    	:= stProcess;
+GVL_HMI.stHmiStatus.sPlcVersion 	:= GVL_HMI.S_PLC_VERSION;
+
+// capture PLC system time
+fbTime();
+IF fbTime.bValid THEN GVL_HMI.stHmiStatus.dtNow := SYSTEMTIME_TO_DT(fbTime.systemTime); END_IF
+// reset successful time set
+IF GVL_HMI.stHmiStatus.nSetTimeState = 2 THEN GVL_HMI.stHmiStatus.nSetTimeState := 0; END_IF
 
 // uptime counter (1 s self-retriggering tick)
 fbTick(IN := NOT fbTick.Q, PT := T#1S);

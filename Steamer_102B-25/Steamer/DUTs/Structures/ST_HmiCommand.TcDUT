@@ -21,8 +21,6 @@ STRUCT
     bSesOff         	: BOOL;    // stop command 
 	bSteamDeliveryOn	: BOOL;    // steam delivery enable
 	bSteamDeliveryOff	: BOOL;    // steam delivery disable
-
-    // --- Alarms page --------------------------------------------------------
     bFaultReset     	: BOOL;    // reset all faults
     bFaultAck       	: BOOL;    // acknowledge (silences banner, faults stay listed)
 
@@ -40,8 +38,10 @@ STRUCT
 	bAutofillOn			: BOOL;					// toggle autofill enable when running
 	bAutofillOff		: BOOL;					// toggle autofill off
 
-    // --- Config page --------------------------------------------------------
+    // --- System page --------------------------------------------------------
     bApplySetpoints : BOOL;    // pulse: validate + apply stSetpointRequest
+	dtSetTime		: DT;
+	bSetTime		: BOOL;
 
 END_STRUCT
 END_TYPE

@@ -42,6 +42,7 @@ STRUCT
 	bStartDpTimeout				: BOOL;		// diff pressure timeout before reaching stpt
 	bStartDpHardwareFault		: BOOL;		// pressure outside of allowable variance
 	bFlowFault					: BOOL;		// flow to dp ratio exceeds calibrated max
+	bTimeSetFault				: BOOL;		// error when setting system time
 
     // --- New-system faults ---------------------------------------
     bHmiCommLoss         : BOOL;   // (new) RPi heartbeat timeout

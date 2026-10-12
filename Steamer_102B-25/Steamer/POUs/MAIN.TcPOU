@@ -32,6 +32,9 @@ VAR
 	// fbPresureControl
 	reqH1_Upstream				: BOOL;
 	
+	// system page
+	ntSetLocalTime				: NT_SetLocalTime;
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -95,6 +98,18 @@ IF fbHmi.bCmdTempLoopOff THEN fbStateMachine.RequestTempLoop(FALSE); END_IF
 IF fbHmi.bCmdApplySetpoints THEN 
 	IF GVL_HMI.stHmiSetpoints.rSetFlow < GVL_SysParameters.rFlowMin THEN GVL_HMI.stHmiSetpoints.rSetFlow := GVL_SysParameters.rFlowMin; END_IF
 	IF GVL_HMI.stHmiSetpoints.rSetFlow > GVL_SysParameters.rFlowMax THEN GVL_HMI.stHmiSetpoints.rSetFlow := GVL_SysParameters.rFlowMax; END_IF
+END_IF
+IF fbHmi.bCmdSetTime OR GVL_HMI.stHmiStatus.nSetTimeState <> 0 THEN 
+	IF fbHmi.bCmdSetTime THEN 
+		GVL_HMI.stHmiStatus.nSetTimeState := 1;
+	ELSIF GVL_HMI.stHmiStatus.nSetTimeState = 1 THEN
+		ntSetLocalTime(TIMESTR := DT_TO_SYSTEMTIME(GVL_HMI.stHmiCommand.dtSetTime), Start := TRUE);
+		IF ntSetLocalTime.ERR THEN 
+			GVL_HMI.stHmiStatus.nSetTimeState := 3;
+		ELSIF NOT ntSetLocalTime.BUSY THEN 
+			GVL_HMI.stHmiStatus.nSetTimeState := 2; 
+		END_IF
+	END_IF
 END_IF
 
 //========================= STATE MACHINE =================================

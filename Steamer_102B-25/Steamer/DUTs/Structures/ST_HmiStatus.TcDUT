@@ -52,6 +52,8 @@ STRUCT
     sPlcVersion     	: STRING(31);        	// version of the PLC program
     sHmiVersion     	: STRING(31);        	// echoed from Pi at startup, shown for record
     nUptimeSeconds  	: UDINT;
+	dtNow				: DT;
+	nSetTimeState		: INT;					// 0 idle, 1 busy, 2 done, 3 error
 
 END_STRUCT
 END_TYPE

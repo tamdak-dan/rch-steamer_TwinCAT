@@ -66,6 +66,12 @@ CASE eState OF
         tonSv2Close(IN := (stProcess.rPt1Upstream < GVL_SysParameters.rUpstreamPressureReleived),
                     PT := GVL_SysParameters.tSv2CloseDelay);
         bSV2_SpaValve := NOT tonSv2Close.Q;   // stay open until relieved+delay
+		
+		GVL_HMI.stHmiCommand.aValveCmd[1] := FALSE;
+		GVL_HMI.stHmiCommand.aValveCmd[2] := FALSE;
+		GVL_HMI.stHmiCommand.aValveCmd[3] := FALSE;
+		GVL_HMI.stHmiCommand.aValveCmd[4] := FALSE;
+		
 
     //-- Running states: automatic intent from sequence FBs ------------------
     ELSE
