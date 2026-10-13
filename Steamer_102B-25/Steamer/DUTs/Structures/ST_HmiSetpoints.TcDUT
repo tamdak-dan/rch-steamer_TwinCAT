@@ -17,7 +17,8 @@ STRUCT
 	rSetFlow       		: REAL;  			// requested flow setpoint      [SLM]
     //rSetDsPressure 		: REAL; 			// downstream pressure setpoint [Torr]
 	rSetElevation		: REAL;				// meters above seal level [MASL] 
-	bSetSize25L			: BOOL;				// set size to 25L, FALSE = 50L
+	bSetSize25L			: BOOL := TRUE;		// set size to 25L (default)
+	bSetSize50L			: BOOL;				// set size to 50L
 	sSetEipAddress		: STRING(15);		// string to represent EthernetIP address
 END_STRUCT
 END_TYPE
