@@ -42,6 +42,7 @@ STRUCT
     bApplySetpoints : BOOL;    // pulse: validate + apply stSetpointRequest
 	dtSetTime		: DT;
 	bSetTime		: BOOL;
+	bEipApply 		: BOOL;
 
 END_STRUCT
 END_TYPE

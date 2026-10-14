@@ -30,8 +30,12 @@ VAR_GLOBAL
 	aiTC1_SpaTemp				AT %I* : INT;
 	aiTC2_FlometerTemp			AT %I* : INT;
 	aiTC3_ExternalTemp			AT %I* : INT;
-	aiTC4_DeliveryTemp			AT %I* : INT;	
+	aiTC4_DeliveryTemp			AT %I* : INT;
 	
+	// Ethernet/IP module
+	stEipAdsAddr  				AT %I* : AMSADDR;	// EL6652-0010 > InfoData > AdsAddr
+	nEipState    				AT %I* : UINT;      // EL6652-0010 > InfoData > State (8 = OP)
+
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>

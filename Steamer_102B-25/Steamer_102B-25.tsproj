@@ -2,6 +2,60 @@
 <TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4026.25">
 	<DataTypes>
 		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-000000000041}" TcBaseType="true" HideSubItems="true" CName="AmsNetId">AMSNETID</Name>
+			<BitSize>48</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>6</Elements>
+			</ArrayInfo>
+			<Format>
+				<Printf>%d.%d.%d.%d.%d.%d</Printf>
+				<Parameter>[0]</Parameter>
+				<Parameter>[1]</Parameter>
+				<Parameter>[2]</Parameter>
+				<Parameter>[3]</Parameter>
+				<Parameter>[4]</Parameter>
+				<Parameter>[5]</Parameter>
+			</Format>
+		</DataType>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-000000000042}" TcBaseType="true" CName="AmsAddr">AMSADDR</Name>
+			<BitSize>64</BitSize>
+			<SubItem>
+				<Name>netId</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000041}">AMSNETID</Type>
+				<BitSize>48</BitSize>
+				<BitOffs>0</BitOffs>
+			</SubItem>
+			<SubItem>
+				<Name>port</Name>
+				<Type GUID="{18071995-0000-0000-0000-000000000004}">WORD</Type>
+				<BitSize>16</BitSize>
+				<BitOffs>48</BitOffs>
+			</SubItem>
+			<Format>
+				<Printf>%d.%d.%d.%d.%d.%d:%d</Printf>
+				<Parameter>.netId[0]</Parameter>
+				<Parameter>.netId[1]</Parameter>
+				<Parameter>.netId[2]</Parameter>
+				<Parameter>.netId[3]</Parameter>
+				<Parameter>.netId[4]</Parameter>
+				<Parameter>.netId[5]</Parameter>
+				<Parameter>.port</Parameter>
+			</Format>
+			<Format Name="Iec">
+				<Printf>(netId:=[%d.%d.%d.%d.%d.%d], port :=%d)</Printf>
+				<Parameter>.netId[0]</Parameter>
+				<Parameter>.netId[1]</Parameter>
+				<Parameter>.netId[2]</Parameter>
+				<Parameter>.netId[3]</Parameter>
+				<Parameter>.netId[4]</Parameter>
+				<Parameter>.netId[5]</Parameter>
+				<Parameter>.port</Parameter>
+			</Format>
+		</DataType>
+		<DataType>
 			<Name GUID="{18071995-0000-0000-0000-002000000001}" IecBaseType="true" BitType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..0] OF BIT</Name>
 			<BitSize>1</BitSize>
 			<BaseType GUID="{18071995-0000-0000-0000-000000000010}">BIT</BaseType>
@@ -47,7 +101,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{0620E3FE-F520-43EC-B6C2-27AFBA942A9A}" Name="Steamer" PrjFilePath="Steamer\Steamer.plcproj" TmcFilePath="Steamer\Steamer.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{2F7D99DD-ED51-9883-B182-EC9313072E68}" TmcPath="Steamer\Steamer.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{1EC99D28-5876-DF95-3BED-B4745C55E302}" TmcPath="Steamer\Steamer.tmc">
 					<Name>Steamer Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
@@ -89,6 +143,11 @@
 					</Vars>
 					<Vars VarGrpType="1">
 						<Name>PlcTask Inputs</Name>
+						<Var>
+							<Name>GVL_IO.stEipAdsAddr</Name>
+							<Comment><![CDATA[ EL6652-0010 > InfoData > AdsAddr]]></Comment>
+							<Type GUID="{18071995-0000-0000-0000-000000000042}">AMSADDR</Type>
+						</Var>
 						<Var>
 							<Name>GVL_IO.biTankFloodFault</Name>
 							<Comment><![CDATA[ binary inputs
@@ -133,6 +192,11 @@ boLED2_AlarmLight			AT %Q* : BOOL;
 						<Var>
 							<Name>GVL_IO.aiTC4_DeliveryTemp</Name>
 							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_IO.nEipState</Name>
+							<Comment><![CDATA[ EL6652-0010 > InfoData > State (8 = OP)]]></Comment>
+							<Type>UINT</Type>
 						</Var>
 					</Vars>
 					<Contexts>
@@ -683,10 +747,15 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 	</Project>
 	<Mappings>
 		<MappingInfo Identifier="{00000000-2001-0850-0020-500810000403}" Id="#x02030010"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500821000403}" Id="#x02030020"/>
 		<OwnerA Name="TIPC^Steamer^Steamer Instance">
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 11 (EL3052)">
 				<Link VarA="PlcTask Inputs^GVL_IO.aiPT1_UpstreamPressure" VarB="AI Standard Channel 1^Value"/>
 				<Link VarA="PlcTask Inputs^GVL_IO.aiPT2_DownstreamPressure" VarB="AI Standard Channel 2^Value"/>
+			</OwnerB>
+			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 13 (EL6652-0010)">
+				<Link VarA="PlcTask Inputs^GVL_IO.nEipState" VarB="InfoData^State"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.stEipAdsAddr" VarB="InfoData^AdsAddr"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 2 (EL1008)">
 				<Link VarA="PlcTask Inputs^GVL_IO.biLS1_WaterMidLevel" VarB="Channel 3^Input"/>

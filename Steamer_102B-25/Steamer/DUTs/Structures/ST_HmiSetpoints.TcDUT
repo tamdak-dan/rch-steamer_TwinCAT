@@ -13,13 +13,14 @@
 {attribute 'pack_mode' := '1'}
 TYPE ST_HmiSetpoints :
 STRUCT
-	bSetPurgeOnStartup	: BOOL := FALSE;	// 
-	rSetFlow       		: REAL;  			// requested flow setpoint      [SLM]
-    //rSetDsPressure 		: REAL; 			// downstream pressure setpoint [Torr]
-	rSetElevation		: REAL;				// meters above seal level [MASL] 
-	bSetSize25L			: BOOL := TRUE;		// set size to 25L (default)
-	bSetSize50L			: BOOL;				// set size to 50L
-	sSetEipAddress		: STRING(15);		// string to represent EthernetIP address
+	bSetPurgeOnStartup		: BOOL := FALSE;	// 
+	rSetFlow       			: REAL;  			// requested flow setpoint      [SLM]
+    //rSetDsPressure 			: REAL; 			// downstream pressure setpoint [Torr]
+	rSetElevation			: REAL;				// meters above seal level [MASL] 
+	bSetSize25L				: BOOL := TRUE;		// set size to 25L (default)
+	bSetSize50L				: BOOL;				// set size to 50L
+	//Ethernet/IP vars
+	nIp, nMask,	nGateway	: UDINT;			// EIP ip addr, subnet mask, default gateway
 END_STRUCT
 END_TYPE
 ]]></Declaration>
