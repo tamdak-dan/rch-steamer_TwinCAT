@@ -55,7 +55,7 @@ STRUCT
 	dtNow				: DT;
 	nSetTimeState		: INT;					// 0 idle, 1 busy, 2 done, 3 error
 	nIpActive, nMaskActive, nGatewayActive : UDINT;
-	nApplyState 		: INT;					// 0 idle, 1 busy, 2 done, 3 error
+	nEipState	 		: INT;					// 0 idle, 1 busy, 2 done, 3 error
 
 END_STRUCT
 END_TYPE

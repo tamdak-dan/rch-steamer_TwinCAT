@@ -87,6 +87,10 @@ VAR_GLOBAL
 		rP3AbsMin				: REAL := 575.0;	// min atmospheric pressure
 		rPtMaxVariance			: REAL := 10.0;		// 
 		rMaxFlowDpRatio			: REAL := 0.25;		// rated_flow(×10 SLM) × 0.001 = 250 × 0.001 = 0.25 SLM/Torr
+		
+	// Ethernet/IP config 
+		nSlaveId      : UDINT := 7;     // ID of Box 7: check the General tab and use its "Id"
+    	bEipSwapBytes : BOOL  := TRUE;  // confirm with the byte-order test below
 	
 	
 END_VAR]]></Declaration>

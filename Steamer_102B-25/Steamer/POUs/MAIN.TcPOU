@@ -20,6 +20,7 @@ VAR
 	fbStateMachine 		: FB_StateMachine;
 	fbWaterFill 		: FB_WaterFill;
 	fbOutputHandler		: FB_OutputHandler;
+	fbEipConfig			: FB_EipConfig;
 	
 	// fbWaterFill
 	reqSV4_FillVavle			: BOOL;
@@ -45,7 +46,7 @@ END_VAR
 // SCALE INPUTS
 fbProcessCalcs(eState := fbStateMachine.eState);
 
-// FAULT CHECK
+//========================= FAULT MONITOR ================================
 fbFaultMonitor(
 	stProcess := fbProcessCalcs.stProcessValues,
 	eState := fbStateMachine.eState,
@@ -131,6 +132,9 @@ IF fbHmi.bCmdSetTime OR GVL_HMI.stHmiStatus.nSetTimeState <> 0 THEN
 	END_IF
 END_IF
 
+// handling of ethernet/ip address change command from the HMI
+
+
 //========================= STATE MACHINE =================================
 
 fbStateMachine(
@@ -186,6 +190,7 @@ fbPressureControl(
 	bSpaPressurized := fbSpaFlush.bSpaPressurized
 );
 
+fbEipConfig();
 
 
 //========================= OUTPUT HANDLER ====================================
@@ -200,7 +205,10 @@ fbOutputHandler(
 	bExtHeater := fbPressureControl.qH4_ExternalHeater,
 	arValveOverride := GVL_HMI.stHmiCommand.aValveCmd,
 	stProcess := fbProcessCalcs.stProcessValues
-);]]></ST>
+);
+
+
+]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

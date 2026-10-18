@@ -59,8 +59,9 @@
     <Compile Include="PlcTask.TcTTO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\FB_EipNetworkConfig.TcPOU">
+    <Compile Include="POUs\FB_EipConfig.TcPOU">
       <SubType>Code</SubType>
+      <ExcludeFromBuild>false</ExcludeFromBuild>
     </Compile>
     <Compile Include="POUs\FB_FaultMonitor.TcPOU">
       <SubType>Code</SubType>

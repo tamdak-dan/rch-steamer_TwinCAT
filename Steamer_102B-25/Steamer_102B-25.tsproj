@@ -97,11 +97,23 @@
 				<Task Id="3" Priority="20" CycleTime="100000" AmsPort="350" AdtTasks="true">
 					<Name>PlcTask</Name>
 				</Task>
+				<Task Id="4" Priority="10" CycleTime="100000" AmsPort="301">
+					<Name>Eip Task</Name>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+					</Vars>
+					<Image Id="4" AddrType="1" ImageType="1">
+						<Name>EIP-Image</Name>
+					</Image>
+				</Task>
 			</Tasks>
 		</System>
 		<Plc>
 			<Project GUID="{0620E3FE-F520-43EC-B6C2-27AFBA942A9A}" Name="Steamer" PrjFilePath="Steamer\Steamer.plcproj" TmcFilePath="Steamer\Steamer.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{1EC99D28-5876-DF95-3BED-B4745C55E302}" TmcPath="Steamer\Steamer.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{339918AC-FE54-A983-4F99-F15CEFFFDA7E}" TmcPath="Steamer\Steamer.tmc">
 					<Name>Steamer Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
@@ -143,11 +155,6 @@
 					</Vars>
 					<Vars VarGrpType="1">
 						<Name>PlcTask Inputs</Name>
-						<Var>
-							<Name>GVL_IO.stEipAdsAddr</Name>
-							<Comment><![CDATA[ EL6652-0010 > InfoData > AdsAddr]]></Comment>
-							<Type GUID="{18071995-0000-0000-0000-000000000042}">AMSADDR</Type>
-						</Var>
 						<Var>
 							<Name>GVL_IO.biTankFloodFault</Name>
 							<Comment><![CDATA[ binary inputs
@@ -194,6 +201,11 @@ boLED2_AlarmLight			AT %Q* : BOOL;
 							<Type>INT</Type>
 						</Var>
 						<Var>
+							<Name>GVL_IO.stEipAdsAddr</Name>
+							<Comment><![CDATA[ EL6652-0010 > InfoData > AdsAddr]]></Comment>
+							<Type GUID="{18071995-0000-0000-0000-000000000042}">AMSADDR</Type>
+						</Var>
+						<Var>
 							<Name>GVL_IO.nEipState</Name>
 							<Comment><![CDATA[ EL6652-0010 > InfoData > State (8 = OP)]]></Comment>
 							<Type>UINT</Type>
@@ -232,6 +244,9 @@ boLED2_AlarmLight			AT %Q* : BOOL;
 				</AddressInfo>
 				<Image Id="1" AddrType="9" ImageType="3">
 					<Name>Image</Name>
+				</Image>
+				<Image Id="5" AddrType="10" ImageType="3">
+					<Name>Image-2</Name>
 				</Image>
 				<Box Id="1" BoxType="9099">
 					<Name>Term 1 (EK1200)</Name>
@@ -723,15 +738,35 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 					<Box Id="13" BoxType="9109" BoxFlags="#x00000020">
 						<Name>Term 13 (EL6652-0010)</Name>
 						<ImageId>1004</ImageId>
-						<EtherCAT SlaveType="5" AdsServerAddress="05b1604e020e0000" PdiType="#x0008" ExecIo="true" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x19fc3052" RevisionNo="#x0012000a" InfoDataAddr="true" InfoDataNetId="true" RepeatSupport="true" TimeoutStateChange1="10000" TimeoutStateChange3="20000" TimeoutMailbox2="2000" GenerateOwnNetId="true" InitializeOwnNetId="true" CheckRevisionNoType="3" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL6652-0010 EtherNet/IP Adapter (Slave)" Desc="EL6652-0010" PortABoxInfo="#x01000005">
+						<EtherCAT SlaveType="5" AdsServerAddress="05b1604e03010000" FixedAdsServerNetId="true" PdiType="#x0008" ExecIo="true" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x19fc3052" RevisionNo="#x0012000a" InfoDataAddr="true" InfoDataNetId="true" OwnAddrExtern="true" RepeatSupport="true" TimeoutStateChange1="10000" TimeoutStateChange3="20000" TimeoutMailbox2="2000" GenerateOwnNetId="true" InitializeOwnNetId="true" CheckRevisionNoType="3" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL6652-0010 EtherNet/IP Adapter (Slave)" Desc="EL6652-0010" PortABoxInfo="#x01000005">
 							<SyncMan>001000042600010001000000400000040004001026010000</SyncMan>
 							<SyncMan>001400042200010002000000400000040004001422010000</SyncMan>
-							<SyncMan>001800006400000003000000000000000000001864010000</SyncMan>
-							<SyncMan>002400002000000004000000000000000000002420010000</SyncMan>
-							<Fmmu>0000000000000000000000020000000001000000000000000000000000000000</Fmmu>
-							<Fmmu>0000000000000000000000010000000002000000000000000000000000000000</Fmmu>
+							<SyncMan>001804006400010003000000000000000000001864010000</SyncMan>
+							<SyncMan>002404002000010004000000000000000000002420010000</SyncMan>
+							<Fmmu>0000000000000000001800020100000001000000000000000000000000000000</Fmmu>
+							<Fmmu>0000000000000000002400010100000002000000000000000000000000000000</Fmmu>
 							<Fmmu>00000000000000000d0800010100000003000000000000000000000000000000</Fmmu>
 							<BootStrapData>0010000400140004</BootStrapData>
+							<Pdo Name="Box 7 (TC EtherNet/IP Slave)_In" Index="#x1a00" Flags="#x0001" SyncMan="3">
+								<Entry Name="Box 7 (TC EtherNet/IP Slave)_State" Index="#x6000" Sub="#x01" Flags="#x00000100">
+									<Type>UINT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="Box 7 (TC EtherNet/IP Slave)_Out" Index="#x1600" InOut="1" Flags="#x0001" SyncMan="2">
+								<Entry Name="Box 7 (TC EtherNet/IP Slave)_Ctrl" Index="#x7000" Sub="#x01" Flags="#x00000100">
+									<Type>UINT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="ECatState" Index="#x1bff" Flags="#x0001" SyncMan="3">
+								<Entry Name="ECatState" Index="#xf101" Sub="#x01" Flags="#x00000100">
+									<Type>UINT</Type>
+								</Entry>
+							</Pdo>
+							<Pdo Name="ECatCtrl" Index="#x17ff" InOut="1" Flags="#x0001" SyncMan="2">
+								<Entry Name="ECatCtrl" Index="#xf201" Sub="#x01" Flags="#x00000100">
+									<Type>UINT</Type>
+								</Entry>
+							</Pdo>
 							<CoeProfile ProfileNo="5001"/>
 						</EtherCAT>
 					</Box>
@@ -742,6 +777,47 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 					</Box>
 				</Box>
 				<EtherCAT/>
+			</Device>
+			<Device Id="2" DevType="145" AmsPort="28674" AmsNetId="5.177.96.78.3.1" RemoteName="EipAdapter (ECAT EIP Adapter (EL665x-0010))">
+				<Name>EipAdapter (ECAT EIP Adapter (EL665x-0010))</Name>
+				<AddressInfo>
+					<Ecat>
+						<EtherCATDeviceId>13</EtherCATDeviceId>
+						<EtherCATDeviceName>TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 13 (EL6652-0010)</EtherCATDeviceName>
+					</Ecat>
+				</AddressInfo>
+				<Image Id="3" AddrType="4" ImageType="3">
+					<Name>Image</Name>
+				</Image>
+				<Box Id="7" BoxType="9133">
+					<Name>Box 7 (TC EtherNet/IP Slave)</Name>
+					<ImageId>63</ImageId>
+					<Vars VarGrpType="1">
+						<Name>Inputs</Name>
+						<Var>
+							<Name>State</Name>
+							<Comment><![CDATA[0x8000 = Slave has no valid Assembly Object configured
+0x4000 = Slave has no valid IP Addr - pending DHCP request
+0x2000 = TCP server: unable to listen on local EtherNet/IP Port (44818)
+0x1000 = UDP server: unable to listen on local EtherNet/IP Port (44818)
+0x0XXX = reserved
+]]></Comment>
+							<Type>UINT</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2">
+						<Name>Outputs</Name>
+						<Var>
+							<Name>Ctrl</Name>
+							<Type>UINT</Type>
+						</Var>
+					</Vars>
+					<EthernetIp NewSlavePara="07000000426f782031202854432045746865724e65742f495020536c61766529000000000c0000006c000000881800000301000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006401a8c000ffffff000000000000800001001e000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"/>
+				</Box>
+				<Ethernet DeviceDesc="EL6652-0010 EtherNet/IP Adapter (Slave)" PromiscuousModeNoCopy="true" SpecialTask="true" TaskPort="301"/>
+				<EtherNetIPSlaveDev>
+					<Ethernet/>
+				</EtherNetIPSlaveDev>
 			</Device>
 		</Io>
 	</Project>

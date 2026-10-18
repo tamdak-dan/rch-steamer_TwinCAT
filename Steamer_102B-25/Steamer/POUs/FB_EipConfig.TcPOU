@@ -1,0 +1,154 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
+  <POU Name="FB_EipConfig" Id="{d63751fd-1547-4546-88a8-c18affb969b9}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_EipConfig
+VAR CONSTANT
+    MODE_REFRESH : INT := 0;   // just read and publish the active values
+    MODE_APPLY   : INT := 1;   // read, change, write
+    MODE_VERIFY  : INT := 2;   // read back after OP and compare
+END_VAR
+VAR
+    nStep        : INT;
+    nMode        : INT;
+    bStartupRead : BOOL := TRUE;
+
+    sNetId       : T_AmsNetId;
+    fbRead       : ADSREAD;
+    fbWrite      : ADSWRITE;
+    fbState      : FB_EcSetSlaveState;
+    stReq        : ST_EcSlaveState;
+    tonWait      : TON;
+
+    aObj         : ARRAY[0..255] OF BYTE;   // settings block
+    aCmd         : ARRAY[0..259] OF BYTE;   // 4-byte header + block
+    nTmp         : UDINT;
+    wFlags       : WORD;
+    nErrId       : UDINT;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[sNetId := F_CreateAmsNetId(GVL_IO.stEipAdsAddr.netId);
+
+CASE nStep OF
+
+0:  // ---- idle ----
+    GVL_HMI.stHmiStatus.nEipState := 0;
+    IF GVL_HMI.stHmiCommand.bEipApply THEN
+        GVL_HMI.stHmiCommand.bEipApply := FALSE;          // PLC clears the command
+        nMode := MODE_APPLY;
+        IF GVL_HMI.stHmiStatus.sStateName = 'SesOff' THEN
+            GVL_HMI.stHmiStatus.nEipState := 1;   // busy
+            nStep := 10;
+        ELSE
+            nErrId := 0;
+            nStep := 90;                                   // refused: not in SES Off
+        END_IF
+    ELSIF bStartupRead AND (GVL_IO.nEipState AND 16#0F) = 8 THEN
+        bStartupRead := FALSE;
+        nMode := MODE_REFRESH;
+        nStep := 10;
+    END_IF
+
+10: // ---- read the 256-byte settings block ----
+    fbRead(NETID := sNetId, PORT := GVL_IO.stEipAdsAddr.port,
+           IDXGRP := 16#44818000, IDXOFFS := GVL_SysParameters.nSlaveId,
+           LEN := SIZEOF(aObj), DESTADDR := ADR(aObj),
+           READ := TRUE, TMOUT := T#2S);
+    IF NOT fbRead.BUSY THEN
+        fbRead(READ := FALSE);
+        IF fbRead.ERR THEN
+            nErrId := fbRead.ERRID; nStep := 90;
+        ELSIF nMode = MODE_APPLY THEN
+            nStep := 20;
+        ELSE
+            nStep := 60;
+        END_IF
+    END_IF
+
+20: // ---- change IP / mask / gateway and the store flag, build the command ----
+    nTmp := GVL_HMI.stHmiSetpoints.nIp;      MEMCPY(ADR(aObj[16#84]), ADR(nTmp), 4);
+    nTmp := GVL_HMI.stHmiSetpoints.nMask;    MEMCPY(ADR(aObj[16#88]), ADR(nTmp), 4);
+    nTmp := GVL_HMI.stHmiSetpoints.nGateway; MEMCPY(ADR(aObj[16#8C]), ADR(nTmp), 4);
+    MEMCPY(ADR(wFlags), ADR(aObj[16#9E]), 2);
+    wFlags := wFlags OR 16#0100;                           // bit 8 = store category 1
+    MEMCPY(ADR(aObj[16#9E]), ADR(wFlags), 2);
+
+    aCmd[0] := 16#45;  aCmd[1] := 16#23;                   // "set" header
+    aCmd[2] := 16#00;  aCmd[3] := 16#80;                   // object 16#8000, low byte first
+    MEMCPY(ADR(aCmd[4]), ADR(aObj), 256);
+    nStep := 30;
+
+30: // ---- write it ----
+    fbWrite(NETID := sNetId, PORT := GVL_IO.stEipAdsAddr.port,
+            IDXGRP := 16#1F480, IDXOFFS := 0,
+            LEN := SIZEOF(aCmd), SRCADDR := ADR(aCmd),
+            WRITE := TRUE, TMOUT := T#2S);
+    IF NOT fbWrite.BUSY THEN
+        fbWrite(WRITE := FALSE);
+        IF fbWrite.ERR THEN nErrId := fbWrite.ERRID; nStep := 90;
+        ELSE nStep := 40; END_IF
+    END_IF
+
+40: // ---- terminal to PreOp ----
+    stReq.deviceState := EC_DEVICE_STATE_PREOP;
+    fbState(sNetId := sNetId, nSlaveAddr := GVL_IO.stEipAdsAddr.port,
+            bExecute := TRUE, tTimeout := T#5S, reqState := EC_DEVICE_STATE_PREOP);
+    IF NOT fbState.bBusy THEN
+        fbState(bExecute := FALSE);
+        IF fbState.bError THEN nErrId := fbState.nErrId; nStep := 90;
+        ELSE nStep := 45; END_IF
+    END_IF
+
+45: // ---- and back to OP: the new address takes effect here ----
+    stReq.deviceState := EC_DEVICE_STATE_OP;
+    fbState(sNetId := sNetId, nSlaveAddr := GVL_IO.stEipAdsAddr.port,
+            bExecute := TRUE, tTimeout := T#5S, reqState := EC_DEVICE_STATE_OP);
+    IF NOT fbState.bBusy THEN
+        fbState(bExecute := FALSE);
+        IF fbState.bError THEN nErrId := fbState.nErrId; nStep := 90;
+        ELSE nStep := 50; END_IF
+    END_IF
+
+50: // ---- wait for the terminal to report OP ----
+    tonWait(IN := TRUE, PT := T#10S);
+    IF (GVL_IO.nEipState AND 16#0F) = 8 THEN
+        tonWait(IN := FALSE);
+        nMode := MODE_VERIFY;
+        nStep := 10;                                       // read back
+    ELSIF tonWait.Q THEN
+        tonWait(IN := FALSE);
+        nErrId := 16#FFFE; nStep := 90;                    // never returned to OP
+    END_IF
+
+60: // ---- publish what the terminal holds ----
+    MEMCPY(ADR(nTmp), ADR(aObj[16#84]), 4); GVL_HMI.stHmiStatus.nIpActive      := nTmp;
+    MEMCPY(ADR(nTmp), ADR(aObj[16#88]), 4); GVL_HMI.stHmiStatus.nMaskActive    := nTmp;
+    MEMCPY(ADR(nTmp), ADR(aObj[16#8C]), 4); GVL_HMI.stHmiStatus.nGatewayActive := nTmp;
+
+    IF nMode = MODE_VERIFY THEN
+        IF  GVL_HMI.stHmiStatus.nIpActive      = GVL_HMI.stHmiSetpoints.nIp
+        AND GVL_HMI.stHmiStatus.nMaskActive    = GVL_HMI.stHmiSetpoints.nMask
+        AND GVL_HMI.stHmiStatus.nGatewayActive = GVL_HMI.stHmiSetpoints.nGateway THEN
+            nStep := 80;
+        ELSE
+            nErrId := 16#FFFF; nStep := 90;                // read-back mismatch
+        END_IF
+    ELSE
+        nStep := 0;
+    END_IF
+
+80: // ---- done: hold 2 for the HMI, then idle ----
+    GVL_HMI.stHmiStatus.nEipState := 2;
+    tonWait(IN := TRUE, PT := T#3S);
+    IF tonWait.Q THEN tonWait(IN := FALSE); nStep := 0; END_IF
+
+90: // ---- error: hold 3 for the HMI, then idle ----
+    IF nMode <> MODE_REFRESH THEN                          // a failed startup read stays quiet
+        GVL_HMI.stHmiStatus.nEipState := 3;
+    END_IF
+    tonWait(IN := TRUE, PT := T#3S);
+    IF tonWait.Q THEN tonWait(IN := FALSE); nStep := 0; END_IF
+
+END_CASE]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
