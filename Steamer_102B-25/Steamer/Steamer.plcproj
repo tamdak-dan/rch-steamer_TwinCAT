@@ -45,6 +45,10 @@
     <Compile Include="DUTs\Structures\ST_ProcessValues.TcDUT">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="GVLs\GVL_EIP.TcGVL">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
     <Compile Include="GVLs\GVL_HMI.TcGVL">
       <SubType>Code</SubType>
     </Compile>

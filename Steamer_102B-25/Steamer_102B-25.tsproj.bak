@@ -97,11 +97,23 @@
 				<Task Id="3" Priority="20" CycleTime="100000" AmsPort="350" AdtTasks="true">
 					<Name>PlcTask</Name>
 				</Task>
+				<Task Id="4" Priority="10" CycleTime="100000" AmsPort="301">
+					<Name>Eip Task</Name>
+					<Vars VarGrpType="1" InsertType="1">
+						<Name>Inputs</Name>
+					</Vars>
+					<Vars VarGrpType="2" InsertType="1">
+						<Name>Outputs</Name>
+					</Vars>
+					<Image Id="4" AddrType="1" ImageType="1">
+						<Name>EIP-Image</Name>
+					</Image>
+				</Task>
 			</Tasks>
 		</System>
 		<Plc>
 			<Project GUID="{0620E3FE-F520-43EC-B6C2-27AFBA942A9A}" Name="Steamer" PrjFilePath="Steamer\Steamer.plcproj" TmcFilePath="Steamer\Steamer.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{339918AC-FE54-A983-4F99-F15CEFFFDA7E}" TmcPath="Steamer\Steamer.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{3DB2D7E2-90F0-3FC5-7012-3E90595FD7F9}" TmcPath="Steamer\Steamer.tmc">
 					<Name>Steamer Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
@@ -232,6 +244,9 @@ boLED2_AlarmLight			AT %Q* : BOOL;
 				</AddressInfo>
 				<Image Id="1" AddrType="9" ImageType="3">
 					<Name>Image</Name>
+				</Image>
+				<Image Id="5" AddrType="10" ImageType="3">
+					<Name>Image-2</Name>
 				</Image>
 				<Box Id="1" BoxType="9099">
 					<Name>Term 1 (EK1200)</Name>
@@ -797,9 +812,9 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 							<Type>UINT</Type>
 						</Var>
 					</Vars>
-					<EthernetIp NewSlavePara="07000000426f782031202854432045746865724e65742f495020536c61766529000000000c0000006c000000881800000301000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006401a8c000ffffff000000000000800001001e000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"/>
+					<EthernetIp NewSlavePara="07000000426f782037202854432045746865724e65742f495020536c61766529000000000c0000006c000000881800000301000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001057120956401a8c000ffffff000000000000800001001e000100000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"/>
 				</Box>
-				<Ethernet DeviceDesc="EL6652-0010 EtherNet/IP Adapter (Slave)" PromiscuousModeNoCopy="true"/>
+				<Ethernet DeviceDesc="EL6652-0010 EtherNet/IP Adapter (Slave)" PromiscuousModeNoCopy="true" SpecialTask="true" TaskPort="301"/>
 				<EtherNetIPSlaveDev>
 					<Ethernet/>
 				</EtherNetIPSlaveDev>
@@ -807,8 +822,9 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 		</Io>
 	</Project>
 	<Mappings>
-		<MappingInfo Identifier="{00000000-2001-0850-0020-500810000403}" Id="#x02030010"/>
-		<MappingInfo Identifier="{00000000-2001-0850-0020-500821000403}" Id="#x02030020"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500822000403}" Id="#x02030020"/>
+		<MappingInfo Identifier="{00000000-2001-0850-0020-500851000403}" Id="#x02030010"/>
+		<MappingInfo Identifier="{00000000-0030-0304-4000-040330000403}" Id="#x02030030"/>
 		<OwnerA Name="TIPC^Steamer^Steamer Instance">
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 11 (EL3052)">
 				<Link VarA="PlcTask Inputs^GVL_IO.aiPT1_UpstreamPressure" VarB="AI Standard Channel 1^Value"/>

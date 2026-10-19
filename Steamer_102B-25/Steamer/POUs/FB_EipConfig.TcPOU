@@ -113,6 +113,7 @@ CASE nStep OF
     IF (GVL_IO.nEipState AND 16#0F) = 8 THEN
         tonWait(IN := FALSE);
         nMode := MODE_VERIFY;
+		MEMSET(ADR(aObj), 0, SIZEOF(aObj));
         nStep := 10;                                       // read back
     ELSIF tonWait.Q THEN
         tonWait(IN := FALSE);
