@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Refactors>
+  <Renames>
+    <RenamedType>
+      <Type guid="752b9d74-af74-43a7-bdbd-59f06e86088b">GVL_EXTCOM</Type>
+      <From>GVL_EIP</From>
+      <To>GVL_RemoteInterface</To>
+    </RenamedType>
+  </Renames>
+</Refactors>

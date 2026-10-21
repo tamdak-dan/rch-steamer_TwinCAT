@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
+  <GVL Name="GVL_RemoteInterface" Id="{752b9d74-af74-43a7-bdbd-59f06e86088b}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+    // =========================================================================
+    // EtherNet/IP or remote interface (ex: EL6652-0010, Box 7): run-page control only
+    // Add the Box 7 connection items in this SAME order and type, then link.
+    // Commands act on the RISING EDGE (0 -> 1); the scanner sets the bit, the
+    // PLC acts once, and the scanner should drop it back to 0.
+    // =========================================================================
+
+    // ---- INPUTS: scanner -> PLC (TwinCAT "Inputs" folder) -------- 12 bytes --
+    bCmdSesOn          AT %I* : BOOL;   // 0   system enabled  (SES on)
+    bCmdSesOff         AT %I* : BOOL;   // 1   system disabled (SES off)
+    bCmdDeliveryOn     AT %I* : BOOL;   // 2   delivery enabled
+    bCmdDeliveryOff    AT %I* : BOOL;   // 3   delivery disabled
+    bCmdFaultReset     AT %I* : BOOL;   // 4   fault reset
+    bCmdApplyFlow      AT %I* : BOOL;   // 5   take rSetFlow as the new flow setpoint
+    nSpareIn           AT %I* : INT;    // 6   reserved, keeps rSetFlow on a 4-byte boundary
+    rSetFlow           AT %I* : REAL;   // 8   flow setpoint [SLM]
+
+    // ---- OUTPUTS: PLC -> scanner (TwinCAT "Outputs" folder) ------ 72 bytes --
+    nStateCode         AT %Q* : INT;    // 0   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
+                                        //     30 PurgeVessel, 40 SetDiffPressure, 50 InitMain,
+                                        //     60 SteamFlowing, 70 SesOff, 80 Maintenance, 99 Fault
+	// system
+    bAnyFault          AT %Q* : BOOL;   // 2   any fault active
+    bSesOn             AT %Q* : BOOL;   // 3   system enabled (startup or running)
+    bDeliveryOn        AT %Q* : BOOL;   // 4   delivery enabled (SV3 open)
+    nSpareOut1         AT %Q* : BYTE;   // 5   reserved
+    nModelSlm          AT %Q* : INT;    // 6   25, 50, or 0 = not set
+
+	// process data
+    rFlowMeasured      AT %Q* : REAL;   // 8   [SLM]
+    rFlowSetpoint      AT %Q* : REAL;   // 12  setpoint the PLC is actually using [SLM]
+    rPT1               AT %Q* : REAL;   // 16  upstream [Torr]
+    rPT2               AT %Q* : REAL;   // 20  downstream [Torr]
+    rTC1               AT %Q* : REAL;   // 24  SPA [degC]
+    rTC2               AT %Q* : REAL;   // 28  flow meter [degC]
+    rTC3               AT %Q* : REAL;   // 32  external line [degC]
+    rTC4               AT %Q* : REAL;   // 36  process out [degC]
+
+	// fault codes
+    nFaultCode1        AT %Q* : INT;    // 40  E_FaultId of active fault 1 (first-out), 0 = empty
+    nFaultCode2        AT %Q* : INT;    // 42
+    nFaultCode3        AT %Q* : INT;    // 44
+    nFaultCode4        AT %Q* : INT;    // 46
+    nFaultCode5        AT %Q* : INT;    // 48
+    nSpareOut2         AT %Q* : INT;    // 50  reserved
+    nFaultTime1        AT %Q* : UDINT;  // 52  time fault 1 tripped, seconds since 1970-01-01 (PLC local time)
+    nFaultTime2        AT %Q* : UDINT;  // 56
+    nFaultTime3        AT %Q* : UDINT;  // 60
+    nFaultTime4        AT %Q* : UDINT;  // 64
+    nFaultTime5        AT %Q* : UDINT;  // 68
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>
