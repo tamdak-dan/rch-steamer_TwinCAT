@@ -18,7 +18,7 @@ VAR_GLOBAL
     bCmdFaultReset     AT %I* : BOOL;   // 4   fault reset
     bCmdApplyFlow      AT %I* : BOOL;   // 5   take rSetFlow as the new flow setpoint
 	rSetFlow           AT %I* : REAL;   // 6   flow setpoint [SLM]
-    nSpareIn           AT %I* : INT;    // 7   reserved, keeps rSetFlow on a 4-byte boundary
+    nSpareIn           AT %I* : REAL;    // 7   reserved, keeps rSetFlow on a 4-byte boundary
 
     // ---- OUTPUTS: PLC -> scanner (TwinCAT "Outputs" folder) ------ 72 bytes --
     nStateCode         AT %Q* : INT;    // 0   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
@@ -32,7 +32,6 @@ VAR_GLOBAL
     bSesOn             AT %Q* : BOOL;   // 4   system enabled (startup or running)
 	bSteamReady	   	   AT %Q* : BOOL;   // 5   system is in run mode ready to deliver steam
     bDeliveryOn        AT %Q* : BOOL;   // 6   delivery enabled (SV3 open)
-	nSpareOut1         AT %Q* : BYTE;   // 7   reserved
 	
 	// process data
     rFlowMeasured      AT %Q* : REAL;   // 8   [SLM]
@@ -50,7 +49,7 @@ VAR_GLOBAL
     nFaultCode3        AT %Q* : BYTE;    // 44
     nFaultCode4        AT %Q* : BYTE;    // 46
     nFaultCode5        AT %Q* : BYTE;    // 48
-    nSpareOut2         AT %Q* : BYTE;    // 50  reserved
+    nSpareOut          AT %Q* : REAL;    // 50  reserved
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>
