@@ -97,6 +97,7 @@ ELSE
 	bCmdDeliveryOff		:= GVL_REMOTE.bCmdDeliveryOff;
 	bCmdFaultReset 		:= GVL_REMOTE.bCmdFaultReset;
 	bCmdApplySetpoints	:= GVL_REMOTE.bCmdApplyFlow;
+	GVL_HMI.stHmiSetpoints.rSetFlow := GVL_REMOTE.rSetFlow;
 END_IF
 
 bCmdEnterMaint 		:= GVL_HMI.stHmiCommand.bEnterMaint;
