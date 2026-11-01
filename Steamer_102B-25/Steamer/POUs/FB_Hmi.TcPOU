@@ -7,11 +7,13 @@ VAR_INPUT
     stProcess       		: ST_ProcessValues;
     stFaults        		: ST_Faults;              // from FB_FaultMonitor
     bReady          		: BOOL;                   // temps in band, ok to flow
-	aActiveFaults		: ARRAY[1..2, 1..5] OF STRING(30);
+	aActiveFaults			: ARRAY[1..2, 1..5] OF STRING(30);
+	aActiveFaults_INT		: ARRAY[1..5] OF INT;
 	
-    // arPidOutput     : ARRAY[1..6] OF REAL;    // loop outputs 0..100 %
-    // arValveActual   : ARRAY[1..4] OF BOOL;    // real valve output states
-    // stLimits        : ST_SetpointLimits;      // clamp ranges (defaults ok)
+	// remote monitoring inputs
+	bDeliveryReady			: BOOL;
+	bDeliveryPermit			: BOOL;
+	
 	
 END_VAR
 VAR_OUTPUT
@@ -72,18 +74,31 @@ bHmiCommLoss := tonHbTimeout.Q;
 nLastHeartbeat := GVL_HMI.stHmiCommand.nHmiHeartbeat;
 bFirstCycle := FALSE;
 
-//=========================== 2. Consume command pulses ========================
+//--------------------- 2. Consume command pulses -----------------------------
 // Latch each request to the output for exactly one cycle, then clear the
 // GVL bit so the Pi never has to write FALSE and a stuck TRUE cannot
 // repeat-fire.
 
-// set any new commands
-bCmdSesOn  			:= GVL_HMI.stHmiCommand.bSesOn; 
-bCmdSesOff     		:= GVL_HMI.stHmiCommand.bSesOff;
-bCmdDeliveryOn		:= GVL_HMI.stHmiCommand.bSteamDeliveryOn;
-bCmdDeliveryOff		:= GVL_HMI.stHmiCommand.bSteamDeliveryOff;
-bCmdFaultReset 		:= GVL_HMI.stHmiCommand.bFaultReset;
-bCmdFaultAck   		:= GVL_HMI.stHmiCommand.bFaultAck;
+// set commands from HMI when in 'local' (HMI) control
+IF GVL_HMI.stHmiSetpoints.bSetRemoteMode = FALSE THEN
+	bCmdSesOn  			:= GVL_HMI.stHmiCommand.bSesOn; 
+	bCmdSesOff     		:= GVL_HMI.stHmiCommand.bSesOff;
+	bCmdDeliveryOn		:= GVL_HMI.stHmiCommand.bSteamDeliveryOn;
+	bCmdDeliveryOff		:= GVL_HMI.stHmiCommand.bSteamDeliveryOff;
+	bCmdFaultReset 		:= GVL_HMI.stHmiCommand.bFaultReset;
+	bCmdFaultAck   		:= GVL_HMI.stHmiCommand.bFaultAck;
+	bCmdApplySetpoints	:= GVL_HMI.stHmiCommand.bApplySetpoints;
+	
+// set commands from EthernetIP source when in remote
+ELSE
+	bCmdSesOn  			:= GVL_REMOTE.bCmdSesOn; 
+	bCmdSesOff     		:= GVL_REMOTE.bCmdSesOff;
+	bCmdDeliveryOn		:= GVL_REMOTE.bCmdDeliveryOn;
+	bCmdDeliveryOff		:= GVL_REMOTE.bCmdDeliveryOff;
+	bCmdFaultReset 		:= GVL_REMOTE.bCmdFaultReset;
+	bCmdApplySetpoints	:= GVL_REMOTE.bCmdApplyFlow;
+END_IF
+
 bCmdEnterMaint 		:= GVL_HMI.stHmiCommand.bEnterMaint;
 bCmdExitMaint  		:= GVL_HMI.stHmiCommand.bExitMaint;
 bCmdExtHeaterOn     := GVL_HMI.stHmiCommand.bExtHeaterOn;
@@ -94,8 +109,8 @@ bCmdDpLoopOn   		:= GVL_HMI.stHmiCommand.bDpControlOn;
 bCmdDpLoopOff   	:= GVL_HMI.stHmiCommand.bDpControlOff;
 bCmdTempLoopOn 		:= GVL_HMI.stHmiCommand.bTempControlOn;
 bCmdTempLoopOff		:= GVL_HMI.stHmiCommand.bTempControlOff;
-bCmdApplySetpoints	:= GVL_HMI.stHmiCommand.bApplySetpoints;
 bCmdSetTime			:= GVL_HMI.stHmiCommand.bSetTime;
+
 
 // clear stale cmds
 GVL_HMI.stHmiCommand.bSesOn      		:= FALSE;
@@ -117,13 +132,21 @@ GVL_HMI.stHmiCommand.bTempControlOn 	:= FALSE;
 GVL_HMI.stHmiCommand.bApplySetpoints	:= FALSE;
 GVL_HMI.stHmiCommand.bSetTime			:= FALSE;
 
+// clear stale cmds from EthernetIP
+GVL_REMOTE.bCmdSesOn 					:= FALSE; 
+GVL_REMOTE.bCmdSesOff					:= FALSE;
+GVL_REMOTE.bCmdDeliveryOn				:= FALSE;
+GVL_REMOTE.bCmdDeliveryOff				:= FALSE;
+GVL_REMOTE.bCmdFaultReset				:= FALSE;
+GVL_REMOTE.bCmdApplyFlow				:= FALSE;
+
 // Safety interlock: ignore SES ON during comm-lost or active fault display;
 // the state machine makes the final call, this is belt-and-braces.
 IF bHmiCommLoss THEN
     bCmdSesOn := FALSE;
 END_IF
 
-//=========================== 5. Publish status ================================
+//--------------------- 5. Publish status - HMI -------------------------------
 GVL_HMI.stHmiStatus.nPlcHeartbeat     := GVL_HMI.stHmiStatus.nPlcHeartbeat + 1;
 GVL_HMI.stHmiStatus.nHmiHeartbeatEcho := GVL_HMI.stHmiCommand.nHmiHeartbeat;
 GVL_HMI.stHmiStatus.bHmiOnline        := NOT bHmiCommLoss;
@@ -137,6 +160,31 @@ GVL_HMI.stHmiStatus.bAlarmActive 	:= stFaults.bAnyFault;
 GVL_HMI.stHmiStatus.aActiveFaults 	:= aActiveFaults;
 GVL_HMI.stHmiStatus.stProcess    	:= stProcess;
 GVL_HMI.stHmiStatus.sPlcVersion 	:= GVL_HMI.S_PLC_VERSION;
+
+// publish status EthernetIP
+GVL_REMOTE.nStateCode := eState;
+GVL_REMOTE.bAnyFault := stFaults.bAnyFault; 
+GVL_REMOTE.bSesOn := eState = E_SystemState.CheckIfHot OR eState = E_SystemState.FillWater 
+					 OR eState = E_SystemState.InitMain OR eState = E_SystemState.PurgeVessel
+					 OR eState = E_SystemState.SetDiffPressure OR eState = E_SystemState.SteamFlowing;
+GVL_REMOTE.bSteamReady := bDeliveryReady;
+GVL_REMOTE.bDeliveryOn := bDeliveryPermit;
+IF GVL_HMI.stHmiSetpoints.bSetSize25L THEN GVL_REMOTE.nModelSlm := 25; 
+ELSIF GVL_HMI.stHmiSetpoints.bSetSize50L THEN GVL_REMOTE.nModelSlm := 50; END_IF
+GVL_REMOTE.rFlowMeasured := stProcess.rFlowActual;
+GVL_REMOTE.rFlowSetpoint := stProcess.rFlowSetpoint;
+GVL_REMOTE.rPT1 := stProcess.rPt1Upstream;
+GVL_REMOTE.rPT2 := stProcess.rPt2Downstream;
+GVL_REMOTE.rTC1 := stProcess.rTc1Spa;
+GVL_REMOTE.rTC2 := stProcess.rTc2FlowMeter;
+GVL_REMOTE.rTC3 := stProcess.rTc3External;
+GVL_REMOTE.rTC4 := stProcess.rTc4Delivery;
+GVL_REMOTE.nFaultCode1 := aActiveFaults_INT[1];
+GVL_REMOTE.nFaultCode2 := aActiveFaults_INT[2];
+GVL_REMOTE.nFaultCode3 := aActiveFaults_INT[3];
+GVL_REMOTE.nFaultCode4 := aActiveFaults_INT[4];
+GVL_REMOTE.nFaultCode5 := aActiveFaults_INT[5];
+
 
 // capture PLC system time
 fbTime();

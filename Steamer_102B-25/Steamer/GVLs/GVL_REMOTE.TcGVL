@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.19">
-  <GVL Name="GVL_RemoteInterface" Id="{752b9d74-af74-43a7-bdbd-59f06e86088b}">
+  <GVL Name="GVL_REMOTE" Id="{752b9d74-af74-43a7-bdbd-59f06e86088b}">
     <Declaration><![CDATA[{attribute 'qualified_only'}
 VAR_GLOBAL
     // =========================================================================
@@ -21,15 +21,16 @@ VAR_GLOBAL
     rSetFlow           AT %I* : REAL;   // 8   flow setpoint [SLM]
 
     // ---- OUTPUTS: PLC -> scanner (TwinCAT "Outputs" folder) ------ 72 bytes --
-    nStateCode         AT %Q* : INT;    // 0   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
+    nStateCode         AT %Q* : INT;    // 	   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
                                         //     30 PurgeVessel, 40 SetDiffPressure, 50 InitMain,
                                         //     60 SteamFlowing, 70 SesOff, 80 Maintenance, 99 Fault
 	// system
     bAnyFault          AT %Q* : BOOL;   // 2   any fault active
     bSesOn             AT %Q* : BOOL;   // 3   system enabled (startup or running)
-    bDeliveryOn        AT %Q* : BOOL;   // 4   delivery enabled (SV3 open)
-    nSpareOut1         AT %Q* : BYTE;   // 5   reserved
-    nModelSlm          AT %Q* : INT;    // 6   25, 50, or 0 = not set
+	bSteamReady	   	   AT %Q* : BOOL;   // 4   system is in run mode ready to deliver steam
+    bDeliveryOn        AT %Q* : BOOL;   // 5   delivery enabled (SV3 open)
+    nSpareOut1         AT %Q* : BYTE;   // 6   reserved
+    nModelSlm          AT %Q* : INT;    // 7   25, 50, or 0 = not set
 
 	// process data
     rFlowMeasured      AT %Q* : REAL;   // 8   [SLM]
@@ -48,11 +49,6 @@ VAR_GLOBAL
     nFaultCode4        AT %Q* : INT;    // 46
     nFaultCode5        AT %Q* : INT;    // 48
     nSpareOut2         AT %Q* : INT;    // 50  reserved
-    nFaultTime1        AT %Q* : UDINT;  // 52  time fault 1 tripped, seconds since 1970-01-01 (PLC local time)
-    nFaultTime2        AT %Q* : UDINT;  // 56
-    nFaultTime3        AT %Q* : UDINT;  // 60
-    nFaultTime4        AT %Q* : UDINT;  // 64
-    nFaultTime5        AT %Q* : UDINT;  // 68
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>

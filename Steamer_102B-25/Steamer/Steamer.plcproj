@@ -45,7 +45,7 @@
     <Compile Include="DUTs\Structures\ST_ProcessValues.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="GVLs\GVL_RemoteInterface.TcGVL">
+    <Compile Include="GVLs\GVL_REMOTE.TcGVL">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
     </Compile>

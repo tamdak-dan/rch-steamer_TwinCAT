@@ -34,6 +34,7 @@ VAR_OUTPUT
     stFaults            : ST_Faults;
     bAnyLatchingFault   : BOOL;   		// mirrors stFaults.bAnyFault, for MAIN
     aActiveFaults		: ARRAY[1..2, 1..5] OF STRING(30);
+	aActiveFaults_INT	: ARRAY[1..5] OF INT;
 END_VAR
 VAR
     // --- reset-window suppression ----------------------------------------
@@ -398,6 +399,7 @@ END_VAR]]></Declaration>
 			EXIT;
 		ELSIF aActiveFaults[1,i] = '' THEN
 			// store error
+			aActiveFaults_INT[i] := eErrorID;
 			aActiveFaults[1,i] := sErrorString;
 			// grab and store timestamp
 			aActiveFaults[2,i] := DT_TO_STRING(GVL_HMI.stHmiStatus.dtNow);
@@ -501,6 +503,7 @@ bExtRiseTested      := FALSE;
 FOR i:=LOWER_BOUND(aActiveFaults, 2) TO UPPER_BOUND(aActiveFaults, 2) DO
 	aActiveFaults[1,i] := '';
 	aActiveFaults[2,i] := '';
+	aActiveFaults_INT[i] := 0;
 END_FOR
 
 InhibitSensorHwEval(FALSE);

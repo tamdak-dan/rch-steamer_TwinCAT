@@ -131,7 +131,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{0620E3FE-F520-43EC-B6C2-27AFBA942A9A}" Name="Steamer" PrjFilePath="Steamer\Steamer.plcproj" TmcFilePath="Steamer\Steamer.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{3DB2D7E2-90F0-3FC5-7012-3E90595FD7F9}" TmcPath="Steamer\Steamer.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{8FAA96F3-19CE-B7EB-8130-B28FF8826CEB}" TmcPath="Steamer\Steamer.tmc">
 					<Name>Steamer Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
@@ -169,6 +169,131 @@
 						<Var>
 							<Name>GVL_IO.boH4_ExternalHeater</Name>
 							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bAnyFault</Name>
+							<Comment><![CDATA[ 2   any fault active]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nStateCode</Name>
+							<Comment><![CDATA[ 	   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bSesOn</Name>
+							<Comment><![CDATA[ 3   system enabled (startup or running)]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bDeliveryOn</Name>
+							<Comment><![CDATA[ 4   delivery enabled (SV3 open)]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nSpareOut1</Name>
+							<Comment><![CDATA[ 5   reserved]]></Comment>
+							<Type>BYTE</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nModelSlm</Name>
+							<Comment><![CDATA[ 6   25, 50, or 0 = not set]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.rFlowMeasured</Name>
+							<Comment><![CDATA[ 8   [SLM]]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.rFlowSetpoint</Name>
+							<Comment><![CDATA[ 12  setpoint the PLC is actually using [SLM]]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.rPT1</Name>
+							<Comment><![CDATA[ 16  upstream [Torr]]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.rPT2</Name>
+							<Comment><![CDATA[ 20  downstream [Torr]]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.rTC1</Name>
+							<Comment><![CDATA[ 24  SPA [degC]]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.rTC2</Name>
+							<Comment><![CDATA[ 28  flow meter [degC]]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.rTC3</Name>
+							<Comment><![CDATA[ 32  external line [degC]]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.rTC4</Name>
+							<Comment><![CDATA[ 36  process out [degC]]]></Comment>
+							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nFaultCode1</Name>
+							<Comment><![CDATA[ 40  E_FaultId of active fault 1 (first-out), 0 = empty]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nFaultCode2</Name>
+							<Comment><![CDATA[ 42]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nFaultCode3</Name>
+							<Comment><![CDATA[ 44]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nFaultCode4</Name>
+							<Comment><![CDATA[ 46]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nFaultCode5</Name>
+							<Comment><![CDATA[ 48]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nSpareOut2</Name>
+							<Comment><![CDATA[ 50  reserved]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nFaultTime1</Name>
+							<Comment><![CDATA[ 52  time fault 1 tripped, seconds since 1970-01-01 (PLC local time)]]></Comment>
+							<Type>UDINT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nFaultTime2</Name>
+							<Comment><![CDATA[ 56]]></Comment>
+							<Type>UDINT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nFaultTime3</Name>
+							<Comment><![CDATA[ 60]]></Comment>
+							<Type>UDINT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nFaultTime4</Name>
+							<Comment><![CDATA[ 64]]></Comment>
+							<Type>UDINT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nFaultTime5</Name>
+							<Comment><![CDATA[ 68]]></Comment>
+							<Type>UDINT</Type>
 						</Var>
 					</Vars>
 					<Vars VarGrpType="1">
@@ -227,6 +352,46 @@ boLED2_AlarmLight			AT %Q* : BOOL;
 							<Name>GVL_IO.nEipState</Name>
 							<Comment><![CDATA[ EL6652-0010 > InfoData > State (8 = OP)]]></Comment>
 							<Type>UINT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bCmdSesOn</Name>
+							<Comment><![CDATA[ 0   system enabled  (SES on)]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bCmdSesOff</Name>
+							<Comment><![CDATA[ 1   system disabled (SES off)]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bCmdDeliveryOn</Name>
+							<Comment><![CDATA[ 2   delivery enabled]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bCmdDeliveryOff</Name>
+							<Comment><![CDATA[ 3   delivery disabled]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bCmdFaultReset</Name>
+							<Comment><![CDATA[ 4   fault reset]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bCmdApplyFlow</Name>
+							<Comment><![CDATA[ 5   take rSetFlow as the new flow setpoint]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.nSpareIn</Name>
+							<Comment><![CDATA[ 6   reserved, keeps rSetFlow on a 4-byte boundary]]></Comment>
+							<Type>INT</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.rSetFlow</Name>
+							<Comment><![CDATA[ 8   flow setpoint [SLM]]]></Comment>
+							<Type>REAL</Type>
 						</Var>
 					</Vars>
 					<Contexts>
