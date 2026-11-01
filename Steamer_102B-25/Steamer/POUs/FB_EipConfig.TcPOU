@@ -149,7 +149,23 @@ CASE nStep OF
     tonWait(IN := TRUE, PT := T#3S);
     IF tonWait.Q THEN tonWait(IN := FALSE); nStep := 0; END_IF
 
-END_CASE]]></ST>
+END_CASE
+
+// monitor EIP connection
+// 0 = unknown, 1 = connected + receiving, 2 = connected, no new data, 3 = not connected
+IF ((GVL_IO.nEipState AND 16#0F) <> 8) OR (GVL_IO.nEipConnectionState <> 0) THEN           // terminal not in OP: inputs not valid OR adapter not configured / no IP
+    GVL_REMOTE.nConnectionCode := 3;
+ELSIF (GVL_IO.nEipConnectionState AND 16#0001) <> 0 THEN
+    GVL_REMOTE.nConnectionCode := 3;                            // connection not running
+ELSIF (GVL_IO.nEipConnectionState AND 16#8000) <> 0 THEN
+    GVL_REMOTE.nConnectionCode := 2;                            // running, no new data
+ELSIF GVL_IO.nEipConnectionState = 0 THEN
+    GVL_REMOTE.nConnectionCode := 1;                            // running, data fresh
+ELSE
+    GVL_REMOTE.nConnectionCode := 0;                            // flag we don't recognize
+END_IF
+
+]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>
