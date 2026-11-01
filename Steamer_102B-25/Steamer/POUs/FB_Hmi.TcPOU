@@ -56,7 +56,7 @@ VAR
     fbTick          : TON;
 	
 	// r_trig for EIP data
-	R_TRIG			: R_TRIG;
+	rtSesOn, rtSesOff, rtDelOn, rtDelOff, rtReset, rtApplyFlow : R_TRIG;
 	
 	
 END_VAR
@@ -83,6 +83,14 @@ bFirstCycle := FALSE;
 // GVL bit so the Pi never has to write FALSE and a stuck TRUE cannot
 // repeat-fire.
 
+// capture EIP signals
+rtSesOn    (CLK := GVL_REMOTE.bCmdSesOn);
+rtSesOff   (CLK := GVL_REMOTE.bCmdSesOff);
+rtDelOn    (CLK := GVL_REMOTE.bCmdDeliveryOn);
+rtDelOff   (CLK := GVL_REMOTE.bCmdDeliveryOff);
+rtReset    (CLK := GVL_REMOTE.bCmdFaultReset);
+rtApplyFlow(CLK := GVL_REMOTE.bCmdApplyFlow);
+
 // set commands from HMI when in 'local' (HMI) control
 IF GVL_HMI.stHmiSetpoints.bSetRemoteMode = FALSE THEN
 	bCmdSesOn  			:= GVL_HMI.stHmiCommand.bSesOn; 
@@ -95,13 +103,12 @@ IF GVL_HMI.stHmiSetpoints.bSetRemoteMode = FALSE THEN
 	
 // set commands from EthernetIP source when in remote
 ELSE
-	R_TRIG(CLK := GVL_REMOTE.bCmdSesOn, 		Q => bCmdSesOn); 
-	R_TRIG(CLK := GVL_REMOTE.bCmdSesOff, 		Q => bCmdSesOff);
-	R_TRIG(CLK := GVL_REMOTE.bCmdDeliveryOn, 	Q => bCmdDeliveryOn);
-	R_TRIG(CLK := GVL_REMOTE.bCmdDeliveryOff, 	Q => bCmdDeliveryOff);
-	R_TRIG(CLK := GVL_REMOTE.bCmdFaultReset, 	Q => bCmdFaultReset);
-	R_TRIG(CLK := GVL_REMOTE.bCmdApplyFlow, 	Q => bCmdApplySetpoints);
-			
+    bCmdSesOn          := rtSesOn.Q;
+    bCmdSesOff         := rtSesOff.Q;
+    bCmdDeliveryOn     := rtDelOn.Q;
+    bCmdDeliveryOff    := rtDelOff.Q;
+    bCmdFaultReset     := rtReset.Q;
+    bCmdApplySetpoints := rtApplyFlow.Q;	
 END_IF
 
 // process HMI commands independent of remote/local control
