@@ -78,7 +78,7 @@ fbHmi(
     stProcess   				:= fbProcessCalcs.stProcessValues,
 	stFaults					:= fbFaultMonitor.stFaults,
 	aActiveFaults				:= fbFaultMonitor.aActiveFaults,
-	aActiveFaults_INT			:= fbFaultMonitor.aActiveFaults_INT,
+	aActiveFaults_BYTE			:= fbFaultMonitor.aActiveFaults_BYTE,
 	bReady 						:= fbStateMachine.bReady,
 	bDeliveryPermit				:= fbStateMachine.bDeliveryEnable
 );

@@ -17,24 +17,23 @@ VAR_GLOBAL
     bCmdDeliveryOff    AT %I* : BOOL;   // 3   delivery disabled
     bCmdFaultReset     AT %I* : BOOL;   // 4   fault reset
     bCmdApplyFlow      AT %I* : BOOL;   // 5   take rSetFlow as the new flow setpoint
-    nSpareIn           AT %I* : INT;    // 6   reserved, keeps rSetFlow on a 4-byte boundary
-    rSetFlow           AT %I* : REAL;   // 8   flow setpoint [SLM]
+	rSetFlow           AT %I* : REAL;   // 6   flow setpoint [SLM]
+    nSpareIn           AT %I* : INT;    // 7   reserved, keeps rSetFlow on a 4-byte boundary
 
     // ---- OUTPUTS: PLC -> scanner (TwinCAT "Outputs" folder) ------ 72 bytes --
-    nStateCode         AT %Q* : INT;    // 	   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
+    nStateCode         AT %Q* : INT;    // 0   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
                                         //     30 PurgeVessel, 40 SetDiffPressure, 50 InitMain,
                                         //     60 SteamFlowing, 70 SesOff, 80 Maintenance, 99 Fault
-	nConnectionCode	   AT %Q* : UDINT;	// 	   0 nothing, 1 connected and receiving,
+	nConnectionCode	   AT %Q* : BYTE;	// 1   0 nothing, 1 connected and receiving,
 										//     2 connected not receiving, 3 not connected
-
+    nModelSlm          AT %Q* : BYTE;    // 2  25, 50, or 0 = not set
 	// system
-    bAnyFault          AT %Q* : BOOL;   // 2   any fault active
-    bSesOn             AT %Q* : BOOL;   // 3   system enabled (startup or running)
-	bSteamReady	   	   AT %Q* : BOOL;   // 4   system is in run mode ready to deliver steam
-    bDeliveryOn        AT %Q* : BOOL;   // 5   delivery enabled (SV3 open)
-    nSpareOut1         AT %Q* : BYTE;   // 6   reserved
-    nModelSlm          AT %Q* : INT;    // 7   25, 50, or 0 = not set
-
+    bAnyFault          AT %Q* : BOOL;   // 3   any fault active
+    bSesOn             AT %Q* : BOOL;   // 4   system enabled (startup or running)
+	bSteamReady	   	   AT %Q* : BOOL;   // 5   system is in run mode ready to deliver steam
+    bDeliveryOn        AT %Q* : BOOL;   // 6   delivery enabled (SV3 open)
+	nSpareOut1         AT %Q* : BYTE;   // 7   reserved
+	
 	// process data
     rFlowMeasured      AT %Q* : REAL;   // 8   [SLM]
     rFlowSetpoint      AT %Q* : REAL;   // 12  setpoint the PLC is actually using [SLM]
@@ -46,12 +45,12 @@ VAR_GLOBAL
     rTC4               AT %Q* : REAL;   // 36  process out [degC]
 
 	// fault codes
-    nFaultCode1        AT %Q* : INT;    // 40  E_FaultId of active fault 1 (first-out), 0 = empty
-    nFaultCode2        AT %Q* : INT;    // 42
-    nFaultCode3        AT %Q* : INT;    // 44
-    nFaultCode4        AT %Q* : INT;    // 46
-    nFaultCode5        AT %Q* : INT;    // 48
-    nSpareOut2         AT %Q* : INT;    // 50  reserved
+    nFaultCode1        AT %Q* : BYTE;    // 40  E_FaultId of active fault 1 (first-out), 0 = empty
+    nFaultCode2        AT %Q* : BYTE;    // 42
+    nFaultCode3        AT %Q* : BYTE;    // 44
+    nFaultCode4        AT %Q* : BYTE;    // 46
+    nFaultCode5        AT %Q* : BYTE;    // 48
+    nSpareOut2         AT %Q* : BYTE;    // 50  reserved
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>

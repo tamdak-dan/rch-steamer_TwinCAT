@@ -8,7 +8,7 @@ VAR_INPUT
     stFaults        		: ST_Faults;              // from FB_FaultMonitor
     bReady          		: BOOL;                   // temps in band, ok to flow
 	aActiveFaults			: ARRAY[1..2, 1..5] OF STRING(30);
-	aActiveFaults_INT		: ARRAY[1..5] OF INT;
+	aActiveFaults_BYTE		: ARRAY[1..5] OF BYTE;
 	
 	// remote monitoring inputs
 	bDeliveryPermit			: BOOL;
@@ -183,11 +183,11 @@ GVL_REMOTE.rTC1 := stProcess.rTc1Spa;
 GVL_REMOTE.rTC2 := stProcess.rTc2FlowMeter;
 GVL_REMOTE.rTC3 := stProcess.rTc3External;
 GVL_REMOTE.rTC4 := stProcess.rTc4Delivery;
-GVL_REMOTE.nFaultCode1 := aActiveFaults_INT[1];
-GVL_REMOTE.nFaultCode2 := aActiveFaults_INT[2];
-GVL_REMOTE.nFaultCode3 := aActiveFaults_INT[3];
-GVL_REMOTE.nFaultCode4 := aActiveFaults_INT[4];
-GVL_REMOTE.nFaultCode5 := aActiveFaults_INT[5];
+GVL_REMOTE.nFaultCode1 := aActiveFaults_BYTE[1];
+GVL_REMOTE.nFaultCode2 := aActiveFaults_BYTE[2];
+GVL_REMOTE.nFaultCode3 := aActiveFaults_BYTE[3];
+GVL_REMOTE.nFaultCode4 := aActiveFaults_BYTE[4];
+GVL_REMOTE.nFaultCode5 := aActiveFaults_BYTE[5];
 
 
 // capture PLC system time
