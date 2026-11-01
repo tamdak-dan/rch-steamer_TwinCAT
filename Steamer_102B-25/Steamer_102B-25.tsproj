@@ -92,21 +92,21 @@
 			</ArrayInfo>
 		</DataType>
 		<DataType>
-			<Name GUID="{18071995-0000-0000-0000-000300000034}" IecBaseType="true" AutoDeleteType="true">ARRAY [0..51] OF BYTE</Name>
-			<BitSize>416</BitSize>
+			<Name GUID="{18071995-0000-0000-0000-00030000002D}" IecBaseType="true" AutoDeleteType="true">ARRAY [0..44] OF BYTE</Name>
+			<BitSize>360</BitSize>
 			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
 			<ArrayInfo>
 				<LBound>0</LBound>
-				<Elements>52</Elements>
+				<Elements>45</Elements>
 			</ArrayInfo>
 		</DataType>
 		<DataType>
-			<Name GUID="{18071995-0000-0000-0000-0020000000B0}" IecBaseType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..21] OF BYTE</Name>
-			<BitSize>176</BitSize>
+			<Name GUID="{18071995-0000-0000-0000-002000000078}" IecBaseType="true" AutoDeleteType="true" HideSubItems="true">ARRAY [0..14] OF BYTE</Name>
+			<BitSize>120</BitSize>
 			<BaseType GUID="{18071995-0000-0000-0000-000000000001}">BYTE</BaseType>
 			<ArrayInfo>
 				<LBound>0</LBound>
-				<Elements>22</Elements>
+				<Elements>15</Elements>
 			</ArrayInfo>
 		</DataType>
 	</DataTypes>
@@ -140,7 +140,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{0620E3FE-F520-43EC-B6C2-27AFBA942A9A}" Name="Steamer" PrjFilePath="Steamer\Steamer.plcproj" TmcFilePath="Steamer\Steamer.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{6CEBECF7-938D-5602-28D3-CDC469E12547}" TmcPath="Steamer\Steamer.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{DD4E49BD-1CE8-8E10-0A29-4E8A2C68ED8F}" TmcPath="Steamer\Steamer.tmc">
 					<Name>Steamer Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
@@ -197,7 +197,7 @@
 						<Var>
 							<Name>GVL_REMOTE.nStateCode</Name>
 							<Comment><![CDATA[ 0   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,]]></Comment>
-							<Type>INT</Type>
+							<Type>BYTE</Type>
 						</Var>
 						<Var>
 							<Name>GVL_REMOTE.bSesOn</Name>
@@ -289,8 +289,18 @@
 						<Name>PlcTask Inputs</Name>
 						<Var>
 							<Name>GVL_REMOTE.nSpareIn</Name>
-							<Comment><![CDATA[ 7   reserved, keeps rSetFlow on a 4-byte boundary]]></Comment>
+							<Comment><![CDATA[ 4-7   reserved, keeps rSetFlow on a 4-byte boundary    ]]></Comment>
 							<Type>REAL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bCmdSpare1</Name>
+							<Comment><![CDATA[ 8.6	]]></Comment>
+							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>GVL_REMOTE.bCmdSpare2</Name>
+							<Comment><![CDATA[ 8.7]]></Comment>
+							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>GVL_IO.nEipConnectionState</Name>
@@ -354,37 +364,37 @@ boLED2_AlarmLight			AT %Q* : BOOL;
 						</Var>
 						<Var>
 							<Name>GVL_REMOTE.bCmdSesOn</Name>
-							<Comment><![CDATA[ 0   system enabled  (SES on)]]></Comment>
+							<Comment><![CDATA[ 8.0   system enabled  (SES on)]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>GVL_REMOTE.bCmdSesOff</Name>
-							<Comment><![CDATA[ 1   system disabled (SES off)]]></Comment>
+							<Comment><![CDATA[ 8.1   system disabled (SES off)]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>GVL_REMOTE.bCmdDeliveryOn</Name>
-							<Comment><![CDATA[ 2   delivery enabled]]></Comment>
+							<Comment><![CDATA[ 8.2   delivery enabled]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>GVL_REMOTE.bCmdDeliveryOff</Name>
-							<Comment><![CDATA[ 3   delivery disabled]]></Comment>
+							<Comment><![CDATA[ 8.3   delivery disabled]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>GVL_REMOTE.bCmdFaultReset</Name>
-							<Comment><![CDATA[ 4   fault reset]]></Comment>
+							<Comment><![CDATA[ 8.4   fault reset]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>GVL_REMOTE.bCmdApplyFlow</Name>
-							<Comment><![CDATA[ 5   take rSetFlow as the new flow setpoint]]></Comment>
+							<Comment><![CDATA[ 8.5   take rSetFlow as the new flow setpoint]]></Comment>
 							<Type>BOOL</Type>
 						</Var>
 						<Var>
 							<Name>GVL_REMOTE.rSetFlow</Name>
-							<Comment><![CDATA[ 6   flow setpoint [SLM]]]></Comment>
+							<Comment><![CDATA[ 0-3   flow setpoint [SLM]]]></Comment>
 							<Type>REAL</Type>
 						</Var>
 					</Vars>
@@ -918,7 +928,7 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 						<EtherCAT SlaveType="5" AdsServerAddress="05b1604e03010000" FixedAdsServerNetId="true" PdiType="#x0008" ExecIo="true" MboxDataLinkLayer="true" StateMBoxPolling="true" CycleMBoxPollingTime="0" CoeType="39" FoeType="1" VendorId="#x00000002" ProductCode="#x19fc3052" RevisionNo="#x0012000a" InfoDataAddr="true" InfoDataNetId="true" OwnAddrExtern="true" RepeatSupport="true" TimeoutStateChange1="10000" TimeoutStateChange3="20000" TimeoutMailbox2="2000" GenerateOwnNetId="true" InitializeOwnNetId="true" CheckRevisionNoType="3" PortPhys="51" MaxSlotCount="256" MaxSlotGroupCount="1" SlotPdoIncrement="1" SlotIndexIncrement="16" Type="EL6652-0010 EtherNet/IP Adapter (Slave)" Desc="EL6652-0010" PortABoxInfo="#x01000005">
 							<SyncMan>001000042600010001000000400000040004001026010000</SyncMan>
 							<SyncMan>001400042200010002000000400000040004001422010000</SyncMan>
-							<SyncMan>001838006400010003000000000000000000001864010000</SyncMan>
+							<SyncMan>001831006400010003000000000000000000001864010000</SyncMan>
 							<SyncMan>002411002000010004000000000000000000002420010000</SyncMan>
 							<Fmmu>0000000000000000001800020100000001000000000000000000000000000000</Fmmu>
 							<Fmmu>0000000000000000002400010100000002000000000000000000000000000000</Fmmu>
@@ -937,10 +947,10 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 									<Type>UINT</Type>
 								</Entry>
 								<Entry Name="Box 7 (TC EtherNet/IP Slave) Assembly 1 (Input/Output)_Out" Index="#x7001" Sub="#x01" Flags="#x00000100">
-									<Type GUID="{18071995-0000-0000-0000-000300000034}">ARRAY [0..51] OF BYTE</Type>
+									<Type GUID="{18071995-0000-0000-0000-00030000002D}">ARRAY [0..44] OF BYTE</Type>
 								</Entry>
 								<Entry Flags="#x00000100">
-									<Type GUID="{18071995-0000-0000-0000-0020000000B0}">ARRAY [0..21] OF BYTE</Type>
+									<Type GUID="{18071995-0000-0000-0000-002000000078}">ARRAY [0..14] OF BYTE</Type>
 								</Entry>
 							</Pdo>
 							<Pdo Name="ECatState" Index="#x1bff" Flags="#x0001" SyncMan="3">
@@ -999,7 +1009,7 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 						</Var>
 					</Vars>
 					<EthernetIp NewSlavePara="07000000426f782037202854432045746865724e65742f495020536c61766529000000000c0000006c000000881800000301000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001057120956401a8c000ffffff000000000000800001001e000100000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000">
-						<SlaveConnection Id="1" ConnectionPara="000000000000000000000000000000000000000000000000000000000000000000000000000055aaffd5802b00000000000000000000000000000000000000000000000055aaffd5802b00000000000000000000000055aaffd5802b00000000000055aaffd5802b00000000000000000000000000000000000055aaffd5802b0000000000000000000000000000000000000000000000000000000000000000000000000000000000002b80d5ffaa5500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000055aaffd5802b00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000055aaffd5802b00000000000000000000000000000000000000000000000055aaffd5802b00000000000000000000000055aaffd5802b000000000055aaffaa55000000000000000000000000000000000000000055aaffd5802b00000000000000000000000055aaffd5802b000000" AssemblyPara="010000000000000000000000000000000000000081000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003400000000000000000000000000000082000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d0000000000000000000000000000008800000000000000890000000000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" ConnectionType="1073741867">
+						<SlaveConnection Id="1" ConnectionPara="000000000000000000000000000000000000000000000000000000000000000000000000000055aaffd5802b00000000000000000000000000000000000000000000000055aaffd5802b00000000000000000000000055aaffd5802b00000000000055aaffd5802b00000000000000000000000000000000000055aaffd5802b0000000000000000000000000000000000000000000000000000000000000000000000000000000000002b80d5ffaa5500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000055aaffd5802b00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000055aaffd5802b00000000000000000000000000000000000000000000000055aaffd5802b00000000000000000000000055aaffd5802b000000000055aaffaa55000000000000000000000000000000000000000055aaffd5802b00000000000000000000000055aaffd5802b000000" AssemblyPara="010000000000000000000000000000000000000081000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002d00000000000000000000000000000082000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000d0000000000000000000000000000008800000000000000890000000000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" ConnectionType="1073741867">
 							<Name>Assembly 1 (Input/Output)</Name>
 							<ImageId>24</ImageId>
 							<Vars VarGrpType="1" InsertType="1">
@@ -1013,52 +1023,64 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 									<BitOffs>16</BitOffs>
 								</Var>
 								<Var>
-									<Name>Cmd_SystemEnable</Name>
-									<Type>BIT</Type>
-									<BitOffs>48</BitOffs>
-									<ExternalAddress>6</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>Cmd_SystemDisable</Name>
-									<Type>BIT</Type>
-									<BitOffs>49</BitOffs>
-									<ExternalAddress>7</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>Cmd_DeliveryEnable</Name>
-									<Type>BIT</Type>
-									<BitOffs>50</BitOffs>
-									<ExternalAddress>7</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>Cmd_DeliveryDisable</Name>
-									<Type>BIT</Type>
-									<BitOffs>51</BitOffs>
-									<ExternalAddress>6</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>Cmd_ApplyFlowSetpoint</Name>
-									<Type>BIT</Type>
-									<BitOffs>52</BitOffs>
-									<ExternalAddress>7</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>Cmd_FaultReset</Name>
-									<Type>BIT</Type>
-									<BitOffs>53</BitOffs>
-									<ExternalAddress>7</ExternalAddress>
-								</Var>
-								<Var>
 									<Name>FlowSetpoint</Name>
 									<Type>REAL</Type>
-									<BitOffs>54</BitOffs>
+									<BitOffs>48</BitOffs>
 									<ExternalAddress>7</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>Spare_In</Name>
 									<Type>REAL</Type>
-									<BitOffs>86</BitOffs>
+									<BitOffs>80</BitOffs>
 									<ExternalAddress>11</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>Cmd_SesOn</Name>
+									<Type>BIT</Type>
+									<BitOffs>112</BitOffs>
+									<ExternalAddress>14</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>Cmd_SesOff</Name>
+									<Type>BIT</Type>
+									<BitOffs>113</BitOffs>
+									<ExternalAddress>15</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>Cmd_DeliveryOn</Name>
+									<Type>BIT</Type>
+									<BitOffs>114</BitOffs>
+									<ExternalAddress>15</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>Cmd_DeliveryOff</Name>
+									<Type>BIT</Type>
+									<BitOffs>115</BitOffs>
+									<ExternalAddress>15</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>Cmd_FaultReset</Name>
+									<Type>BIT</Type>
+									<BitOffs>116</BitOffs>
+									<ExternalAddress>15</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>Cmd_ApplyFlow</Name>
+									<Type>BIT</Type>
+									<BitOffs>117</BitOffs>
+									<ExternalAddress>15</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>Cmd_Spare1</Name>
+									<Type>BIT</Type>
+									<BitOffs>118</BitOffs>
+									<ExternalAddress>15</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>Cmd_Spare2</Name>
+									<Type>BIT</Type>
+									<BitOffs>119</BitOffs>
+									<ExternalAddress>15</ExternalAddress>
 								</Var>
 							</Vars>
 							<Vars VarGrpType="2" InsertType="1">
@@ -1069,136 +1091,124 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 									<BitOffs>16</BitOffs>
 								</Var>
 								<Var>
-									<Name>Sts_StateCode</Name>
-									<Type>INT</Type>
-									<BitOffs>48</BitOffs>
-									<ExternalAddress>7</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>StateCode</Name>
-									<Type>INT</Type>
-									<BitOffs>64</BitOffs>
-									<ExternalAddress>8</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>ConnectionCode</Name>
-									<Type>BYTE</Type>
-									<BitOffs>80</BitOffs>
-									<ExternalAddress>10</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>ModelSelected</Name>
-									<Type>BYTE</Type>
-									<BitOffs>88</BitOffs>
-									<ExternalAddress>11</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>FaultActive</Name>
-									<Type>BIT</Type>
-									<BitOffs>96</BitOffs>
-									<ExternalAddress>12</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>SystemEnabled</Name>
-									<Type>BIT</Type>
-									<BitOffs>97</BitOffs>
-									<ExternalAddress>13</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>SteamReady</Name>
-									<Type>BIT</Type>
-									<BitOffs>98</BitOffs>
-									<ExternalAddress>13</ExternalAddress>
-								</Var>
-								<Var>
-									<Name>DeliveryEnabled</Name>
-									<Type>BIT</Type>
-									<BitOffs>99</BitOffs>
-									<ExternalAddress>13</ExternalAddress>
-								</Var>
-								<Var>
 									<Name>FlowMeasured</Name>
 									<Type>REAL</Type>
-									<BitOffs>100</BitOffs>
-									<ExternalAddress>13</ExternalAddress>
+									<BitOffs>48</BitOffs>
+									<ExternalAddress>6</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>FlowSetpoint_PLC</Name>
 									<Type>REAL</Type>
-									<BitOffs>132</BitOffs>
-									<ExternalAddress>17</ExternalAddress>
+									<BitOffs>80</BitOffs>
+									<ExternalAddress>10</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>Pressure1_Upstream</Name>
 									<Type>REAL</Type>
-									<BitOffs>164</BitOffs>
-									<ExternalAddress>21</ExternalAddress>
+									<BitOffs>112</BitOffs>
+									<ExternalAddress>14</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>Pressure2_Downstream</Name>
 									<Type>REAL</Type>
-									<BitOffs>196</BitOffs>
-									<ExternalAddress>25</ExternalAddress>
+									<BitOffs>144</BitOffs>
+									<ExternalAddress>18</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>Temp1_SPA</Name>
 									<Type>REAL</Type>
-									<BitOffs>228</BitOffs>
-									<ExternalAddress>29</ExternalAddress>
+									<BitOffs>176</BitOffs>
+									<ExternalAddress>22</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>Temp2_Flowmeter</Name>
 									<Type>REAL</Type>
-									<BitOffs>260</BitOffs>
-									<ExternalAddress>33</ExternalAddress>
+									<BitOffs>208</BitOffs>
+									<ExternalAddress>26</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>Temp3_External</Name>
 									<Type>REAL</Type>
-									<BitOffs>292</BitOffs>
-									<ExternalAddress>37</ExternalAddress>
+									<BitOffs>240</BitOffs>
+									<ExternalAddress>30</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>Temp4_Process</Name>
 									<Type>REAL</Type>
-									<BitOffs>324</BitOffs>
-									<ExternalAddress>41</ExternalAddress>
+									<BitOffs>272</BitOffs>
+									<ExternalAddress>34</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>StateCode</Name>
+									<Type>BYTE</Type>
+									<BitOffs>304</BitOffs>
+									<ExternalAddress>38</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>ConnectionCode</Name>
+									<Type>BYTE</Type>
+									<BitOffs>312</BitOffs>
+									<ExternalAddress>39</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>ModelActive</Name>
+									<Type>BYTE</Type>
+									<BitOffs>320</BitOffs>
+									<ExternalAddress>40</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>FaultCode1</Name>
 									<Type>BYTE</Type>
-									<BitOffs>356</BitOffs>
-									<ExternalAddress>45</ExternalAddress>
+									<BitOffs>328</BitOffs>
+									<ExternalAddress>41</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>FaultCode2</Name>
 									<Type>BYTE</Type>
-									<BitOffs>364</BitOffs>
-									<ExternalAddress>46</ExternalAddress>
+									<BitOffs>336</BitOffs>
+									<ExternalAddress>42</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>FaultCode3</Name>
 									<Type>BYTE</Type>
-									<BitOffs>372</BitOffs>
-									<ExternalAddress>47</ExternalAddress>
+									<BitOffs>344</BitOffs>
+									<ExternalAddress>43</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>FaultCode4</Name>
 									<Type>BYTE</Type>
-									<BitOffs>380</BitOffs>
-									<ExternalAddress>48</ExternalAddress>
+									<BitOffs>352</BitOffs>
+									<ExternalAddress>44</ExternalAddress>
 								</Var>
 								<Var>
 									<Name>FaultCode5</Name>
 									<Type>BYTE</Type>
-									<BitOffs>388</BitOffs>
-									<ExternalAddress>49</ExternalAddress>
+									<BitOffs>360</BitOffs>
+									<ExternalAddress>45</ExternalAddress>
 								</Var>
 								<Var>
-									<Name>Spare_Out</Name>
-									<Type>REAL</Type>
-									<BitOffs>396</BitOffs>
-									<ExternalAddress>50</ExternalAddress>
+									<Name>FaultActive</Name>
+									<Type>BIT</Type>
+									<BitOffs>368</BitOffs>
+									<ExternalAddress>46</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>SystemEnabled</Name>
+									<Type>BIT</Type>
+									<BitOffs>369</BitOffs>
+									<ExternalAddress>47</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>SteamReady</Name>
+									<Type>BIT</Type>
+									<BitOffs>370</BitOffs>
+									<ExternalAddress>47</ExternalAddress>
+								</Var>
+								<Var>
+									<Name>DeliveryEnabled</Name>
+									<Type>BIT</Type>
+									<BitOffs>371</BitOffs>
+									<ExternalAddress>47</ExternalAddress>
 								</Var>
 							</Vars>
 						</SlaveConnection>
@@ -1249,12 +1259,14 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 			</OwnerB>
 			<OwnerB Name="TIID^EipAdapter (ECAT EIP Adapter (EL665x-0010))^Box 7 (TC EtherNet/IP Slave)">
 				<Link VarA="PlcTask Inputs^GVL_IO.nEipConnectionState" VarB="Assembly 1 (Input/Output)^Inputs^ConnState"/>
-				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdApplyFlow" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_ApplyFlowSetpoint"/>
-				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdDeliveryOff" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_DeliveryDisable"/>
-				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdDeliveryOn" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_DeliveryEnable"/>
+				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdApplyFlow" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_ApplyFlow"/>
+				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdDeliveryOff" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_DeliveryOff"/>
+				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdDeliveryOn" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_DeliveryOn"/>
 				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdFaultReset" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_FaultReset"/>
-				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdSesOff" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_SystemDisable"/>
-				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdSesOn" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_SystemEnable"/>
+				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdSesOff" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_SesOff"/>
+				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdSesOn" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_SesOn"/>
+				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdSpare1" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_Spare1"/>
+				<Link VarA="PlcTask Inputs^GVL_REMOTE.bCmdSpare2" VarB="Assembly 1 (Input/Output)^Inputs^Cmd_Spare2"/>
 				<Link VarA="PlcTask Inputs^GVL_REMOTE.nSpareIn" VarB="Assembly 1 (Input/Output)^Inputs^Spare_In"/>
 				<Link VarA="PlcTask Inputs^GVL_REMOTE.rSetFlow" VarB="Assembly 1 (Input/Output)^Inputs^FlowSetpoint"/>
 				<Link VarA="PlcTask Outputs^GVL_REMOTE.bAnyFault" VarB="Assembly 1 (Input/Output)^Outputs^FaultActive"/>
@@ -1267,8 +1279,7 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 				<Link VarA="PlcTask Outputs^GVL_REMOTE.nFaultCode3" VarB="Assembly 1 (Input/Output)^Outputs^FaultCode3"/>
 				<Link VarA="PlcTask Outputs^GVL_REMOTE.nFaultCode4" VarB="Assembly 1 (Input/Output)^Outputs^FaultCode4"/>
 				<Link VarA="PlcTask Outputs^GVL_REMOTE.nFaultCode5" VarB="Assembly 1 (Input/Output)^Outputs^FaultCode5"/>
-				<Link VarA="PlcTask Outputs^GVL_REMOTE.nModelSlm" VarB="Assembly 1 (Input/Output)^Outputs^ModelSelected"/>
-				<Link VarA="PlcTask Outputs^GVL_REMOTE.nSpareOut" VarB="Assembly 1 (Input/Output)^Outputs^Spare_Out"/>
+				<Link VarA="PlcTask Outputs^GVL_REMOTE.nModelSlm" VarB="Assembly 1 (Input/Output)^Outputs^ModelActive"/>
 				<Link VarA="PlcTask Outputs^GVL_REMOTE.nStateCode" VarB="Assembly 1 (Input/Output)^Outputs^StateCode"/>
 				<Link VarA="PlcTask Outputs^GVL_REMOTE.rFlowMeasured" VarB="Assembly 1 (Input/Output)^Outputs^FlowMeasured"/>
 				<Link VarA="PlcTask Outputs^GVL_REMOTE.rFlowSetpoint" VarB="Assembly 1 (Input/Output)^Outputs^FlowSetpoint_PLC"/>

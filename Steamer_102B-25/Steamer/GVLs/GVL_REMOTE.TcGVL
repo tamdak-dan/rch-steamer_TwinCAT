@@ -11,27 +11,18 @@ VAR_GLOBAL
     // =========================================================================
 
     // ---- INPUTS: scanner -> PLC (TwinCAT "Inputs" folder) -------- 12 bytes --
-    bCmdSesOn          AT %I* : BOOL;   // 0   system enabled  (SES on)
-    bCmdSesOff         AT %I* : BOOL;   // 1   system disabled (SES off)
-    bCmdDeliveryOn     AT %I* : BOOL;   // 2   delivery enabled
-    bCmdDeliveryOff    AT %I* : BOOL;   // 3   delivery disabled
-    bCmdFaultReset     AT %I* : BOOL;   // 4   fault reset
-    bCmdApplyFlow      AT %I* : BOOL;   // 5   take rSetFlow as the new flow setpoint
-	rSetFlow           AT %I* : REAL;   // 6   flow setpoint [SLM]
-    nSpareIn           AT %I* : REAL;    // 7   reserved, keeps rSetFlow on a 4-byte boundary
-
+	rSetFlow           AT %I* : REAL;   // 0-3   flow setpoint [SLM]
+    nSpareIn           AT %I* : REAL;   // 4-7   reserved, keeps rSetFlow on a 4-byte boundary    
+	bCmdSesOn          AT %I* : BOOL;   // 8.0   system enabled  (SES on)
+    bCmdSesOff         AT %I* : BOOL;   // 8.1   system disabled (SES off)
+    bCmdDeliveryOn     AT %I* : BOOL;   // 8.2   delivery enabled
+    bCmdDeliveryOff    AT %I* : BOOL;   // 8.3   delivery disabled
+    bCmdFaultReset     AT %I* : BOOL;   // 8.4   fault reset
+    bCmdApplyFlow      AT %I* : BOOL;   // 8.5   take rSetFlow as the new flow setpoint
+	bCmdSpare1		   AT %I* : BOOL;   // 8.6	
+	bCmdSpare2		   AT %I* : BOOL;	// 8.7
+	
     // ---- OUTPUTS: PLC -> scanner (TwinCAT "Outputs" folder) ------ 72 bytes --
-    nStateCode         AT %Q* : INT;    // 0   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
-                                        //     30 PurgeVessel, 40 SetDiffPressure, 50 InitMain,
-                                        //     60 SteamFlowing, 70 SesOff, 80 Maintenance, 99 Fault
-	nConnectionCode	   AT %Q* : BYTE;	// 1   0 nothing, 1 connected and receiving,
-										//     2 connected not receiving, 3 not connected
-    nModelSlm          AT %Q* : BYTE;    // 2  25, 50, or 0 = not set
-	// system
-    bAnyFault          AT %Q* : BOOL;   // 3   any fault active
-    bSesOn             AT %Q* : BOOL;   // 4   system enabled (startup or running)
-	bSteamReady	   	   AT %Q* : BOOL;   // 5   system is in run mode ready to deliver steam
-    bDeliveryOn        AT %Q* : BOOL;   // 6   delivery enabled (SV3 open)
 	
 	// process data
     rFlowMeasured      AT %Q* : REAL;   // 8   [SLM]
@@ -42,6 +33,15 @@ VAR_GLOBAL
     rTC2               AT %Q* : REAL;   // 28  flow meter [degC]
     rTC3               AT %Q* : REAL;   // 32  external line [degC]
     rTC4               AT %Q* : REAL;   // 36  process out [degC]
+	nSpareOut          AT %Q* : REAL;   // 50  reserved
+
+	// system BYTE
+	nStateCode         AT %Q* : BYTE;   // 0   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
+                                        //     30 PurgeVessel, 40 SetDiffPressure, 50 InitMain,
+                                        //     60 SteamFlowing, 70 SesOff, 80 Maintenance, 99 Fault
+	nConnectionCode	   AT %Q* : BYTE;	// 1   0 nothing, 1 connected and receiving,
+										//     2 connected not receiving, 3 not connected
+    nModelSlm          AT %Q* : BYTE;   // 2  25, 50, or 0 = not set
 
 	// fault codes
     nFaultCode1        AT %Q* : BYTE;    // 40  E_FaultId of active fault 1 (first-out), 0 = empty
@@ -49,7 +49,13 @@ VAR_GLOBAL
     nFaultCode3        AT %Q* : BYTE;    // 44
     nFaultCode4        AT %Q* : BYTE;    // 46
     nFaultCode5        AT %Q* : BYTE;    // 48
-    nSpareOut          AT %Q* : REAL;    // 50  reserved
+
+	// system
+    bAnyFault          AT %Q* : BOOL;    // 3   any fault active
+    bSesOn             AT %Q* : BOOL;    // 4   system enabled (startup or running)
+	bSteamReady	   	   AT %Q* : BOOL;    // 5   system is in run mode ready to deliver steam
+    bDeliveryOn        AT %Q* : BOOL;    // 6   delivery enabled (SV3 open)
+
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>

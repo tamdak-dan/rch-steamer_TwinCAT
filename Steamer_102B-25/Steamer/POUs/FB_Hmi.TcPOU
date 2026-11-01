@@ -166,7 +166,7 @@ GVL_HMI.stHmiStatus.stProcess    	:= stProcess;
 GVL_HMI.stHmiStatus.sPlcVersion 	:= GVL_HMI.S_PLC_VERSION;
 
 // publish status EthernetIP
-GVL_REMOTE.nStateCode := eState;
+GVL_REMOTE.nStateCode := TO_BYTE(eState);
 GVL_REMOTE.bAnyFault := stFaults.bAnyFault; 
 GVL_REMOTE.bSesOn := eState = E_SystemState.CheckIfHot OR eState = E_SystemState.FillWater 
 					 OR eState = E_SystemState.InitMain OR eState = E_SystemState.PurgeVessel
