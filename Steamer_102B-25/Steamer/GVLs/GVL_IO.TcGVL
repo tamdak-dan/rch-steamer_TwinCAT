@@ -35,6 +35,7 @@ VAR_GLOBAL
 	// Ethernet/IP module
 	stEipAdsAddr  				AT %I* : AMSADDR;	// EL6652-0010 > InfoData > AdsAddr
 	nEipState    				AT %I* : UINT;      // EL6652-0010 > InfoData > State (8 = OP)
+	nEipBoxState				AT %I* : UINT;      // link: Box 7 (TC EtherNet/IP Slave) > Inputs > State
 	nEipConnectionState			AT %I* : UDINT;		// status of EIP connection from terminal
 
 END_VAR]]></Declaration>

@@ -153,16 +153,16 @@ END_CASE
 
 // monitor EIP connection
 // 0 = unknown, 1 = connected + receiving, 2 = connected, no new data, 3 = not connected
-IF ((GVL_IO.nEipState AND 16#0F) <> 8) OR (GVL_IO.nEipConnectionState <> 0) THEN           // terminal not in OP: inputs not valid OR adapter not configured / no IP
-    GVL_REMOTE.nConnectionCode := 3;
+IF ((GVL_IO.nEipState AND 16#0F) <> 8) OR (GVL_IO.nEipBoxState <> 0) THEN
+    GVL_REMOTE.nConnectionCode := 3;    // terminal not running or adapter not configured
 ELSIF (GVL_IO.nEipConnectionState AND 16#0001) <> 0 THEN
-    GVL_REMOTE.nConnectionCode := 3;                            // connection not running
+    GVL_REMOTE.nConnectionCode := 3;    // connection not running
 ELSIF (GVL_IO.nEipConnectionState AND 16#8000) <> 0 THEN
-    GVL_REMOTE.nConnectionCode := 2;                            // running, no new data
+    GVL_REMOTE.nConnectionCode := 2;    // running, no new data
 ELSIF GVL_IO.nEipConnectionState = 0 THEN
-    GVL_REMOTE.nConnectionCode := 1;                            // running, data fresh
+    GVL_REMOTE.nConnectionCode := 1;    // running, data fresh
 ELSE
-    GVL_REMOTE.nConnectionCode := 0;                            // flag we don't recognize
+    GVL_REMOTE.nConnectionCode := 0;    // unrecognized flag
 END_IF
 
 ]]></ST>

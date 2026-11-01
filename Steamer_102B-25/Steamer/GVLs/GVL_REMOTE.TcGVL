@@ -11,57 +11,57 @@ VAR_GLOBAL
     // =========================================================================
 
     // ---- INPUTS: scanner -> PLC (TwinCAT "Inputs" folder) -------- 12 bytes --
-	rSetFlow           AT %I* : REAL;   // 0-3   flow setpoint [SLM]
-    nSpareIn           AT %I* : REAL;   // 4-7   reserved, keeps rSetFlow on a 4-byte boundary    
-	bCmdSesOn          AT %I* : BOOL;   // 8.0   system enabled  (SES on)
-    bCmdSesOff         AT %I* : BOOL;   // 8.1   system disabled (SES off)
-    bCmdDeliveryOn     AT %I* : BOOL;   // 8.2   delivery enabled
-    bCmdDeliveryOff    AT %I* : BOOL;   // 8.3   delivery disabled
-    bCmdFaultReset     AT %I* : BOOL;   // 8.4   fault reset
-    bCmdApplyFlow      AT %I* : BOOL;   // 8.5   take rSetFlow as the new flow setpoint
-	bCmdSpare1		   AT %I* : BOOL;   // 8.6	
-	bCmdSpare2		   AT %I* : BOOL;	// 8.7
-	nCmdSpare3		   AT %I* : BYTE;
+	rSetFlow           AT %I* : REAL;   // flow setpoint [SLM]
+    nSpareIn           AT %I* : REAL;   // reserved, keeps rSetFlow on a 4-byte boundary    
+	bCmdSesOn          AT %I* : BOOL;   // system enabled  (SES on)
+    bCmdSesOff         AT %I* : BOOL;   // system disabled (SES off)
+    bCmdDeliveryOn     AT %I* : BOOL;   // delivery enabled
+    bCmdDeliveryOff    AT %I* : BOOL;   // delivery disabled
+    bCmdFaultReset     AT %I* : BOOL;   // fault reset
+    bCmdApplyFlow      AT %I* : BOOL;   // take rSetFlow as the new flow setpoint
+	bCmdSpare1		   AT %I* : BOOL;   // 
+	bCmdSpare2		   AT %I* : BOOL;	// 
+	nCmdSpare3		   AT %I* : BYTE;      
 	nCmdSpare4		   AT %I* : INT;
 	
     // ---- OUTPUTS: PLC -> scanner (TwinCAT "Outputs" folder) ------ 72 bytes --
 	
 	// process data
-    rFlowMeasured      AT %Q* : REAL;   // 8   [SLM]
-    rFlowSetpoint      AT %Q* : REAL;   // 12  setpoint the PLC is actually using [SLM]
-    rPT1               AT %Q* : REAL;   // 16  upstream [Torr]
-    rPT2               AT %Q* : REAL;   // 20  downstream [Torr]
-    rTC1               AT %Q* : REAL;   // 24  SPA [degC]
-    rTC2               AT %Q* : REAL;   // 28  flow meter [degC]
-    rTC3               AT %Q* : REAL;   // 32  external line [degC]
-    rTC4               AT %Q* : REAL;   // 36  process out [degC]
-	nSpareOut          AT %Q* : REAL;   // 50  reserved
+    rFlowMeasured      AT %Q* : REAL;   // [SLM]
+    rFlowSetpoint      AT %Q* : REAL;   // setpoint the PLC is actually using [SLM]
+    rPT1               AT %Q* : REAL;   // upstream [Torr]
+    rPT2               AT %Q* : REAL;   // downstream [Torr]
+    rTC1               AT %Q* : REAL;   // SPA [degC]
+    rTC2               AT %Q* : REAL;   // flow meter [degC]
+    rTC3               AT %Q* : REAL;   // external line [degC]
+    rTC4               AT %Q* : REAL;   // process out [degC]
 
 	// system BYTE
-	nStateCode         AT %Q* : BYTE;   // 0   E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
-                                        //     30 PurgeVessel, 40 SetDiffPressure, 50 InitMain,
-                                        //     60 SteamFlowing, 70 SesOff, 80 Maintenance, 99 Fault
-	nConnectionCode	   AT %Q* : BYTE;	// 1   0 nothing, 1 connected and receiving,
-										//     2 connected not receiving, 3 not connected
-    nModelSlm          AT %Q* : BYTE;   // 2  25, 50, or 0 = not set
-
+	nStateCode         AT %Q* : BYTE;   // E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
+                                        // 30 PurgeVessel, 40 SetDiffPressure, 50 InitMain,
+                                        // 60 SteamFlowing, 70 SesOff, 80 Maintenance, 99 Fault
+	nConnectionCode	   AT %Q* : BYTE;	// 0 nothing, 1 connected and receiving,
+										// 2 connected not receiving, 3 not connected
+    nModelSlm          AT %Q* : BYTE;   // 25, 50, or 0 = not set
+                                           
 	// fault codes
-    nFaultCode1        AT %Q* : BYTE;    // 40  E_FaultId of active fault 1 (first-out), 0 = empty
-    nFaultCode2        AT %Q* : BYTE;    // 42
-    nFaultCode3        AT %Q* : BYTE;    // 44
-    nFaultCode4        AT %Q* : BYTE;    // 46
-    nFaultCode5        AT %Q* : BYTE;    // 48
-
-	// system
-    bAnyFault          AT %Q* : BOOL;    // 3   any fault active
-    bSesOn             AT %Q* : BOOL;    // 4   system enabled (startup or running)
-	bSteamReady	   	   AT %Q* : BOOL;    // 5   system is in run mode ready to deliver steam
-    bDeliveryOn        AT %Q* : BOOL;    // 6   delivery enabled (SV3 open)
-	bOutSpare1		   AT %Q* : BOOL;
+    nFaultCode1        AT %Q* : BYTE;    // E_FaultId of active fault 1 (first-out), 0 = empty
+    nFaultCode2        AT %Q* : BYTE;    // 
+    nFaultCode3        AT %Q* : BYTE;    // 
+    nFaultCode4        AT %Q* : BYTE;    // 
+    nFaultCode5        AT %Q* : BYTE;    // 
+                                            
+	// system                               
+    bAnyFault          AT %Q* : BOOL;    // any fault active
+    bSesOn             AT %Q* : BOOL;    // system enabled (startup or running)
+	bSteamReady	   	   AT %Q* : BOOL;    // system is in run mode ready to deliver steam
+    bDeliveryOn        AT %Q* : BOOL;    // delivery enabled (SV3 open)
+	bOutSpare1		   AT %Q* : BOOL;       
 	bOutSpare2		   AT %Q* : BOOL;
 	bOutSpare3		   AT %Q* : BOOL;
 	bOutSpare4		   AT %Q* : BOOL;
 	nOutSpare5		   AT %Q* : BYTE;
+	nOutSpare6		   AT %Q* : INT;
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>
