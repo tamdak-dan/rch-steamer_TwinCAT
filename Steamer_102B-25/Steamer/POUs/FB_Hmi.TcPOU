@@ -11,7 +11,6 @@ VAR_INPUT
 	aActiveFaults_INT		: ARRAY[1..5] OF INT;
 	
 	// remote monitoring inputs
-	bDeliveryReady			: BOOL;
 	bDeliveryPermit			: BOOL;
 	
 	
@@ -55,6 +54,11 @@ VAR
     tonUptime       : TON;
     nUptimeSeconds  : UDINT;
     fbTick          : TON;
+	
+	// r_trig for EIP data
+	R_TRIG			: R_TRIG;
+	
+	
 END_VAR
 
 ]]></Declaration>
@@ -91,15 +95,16 @@ IF GVL_HMI.stHmiSetpoints.bSetRemoteMode = FALSE THEN
 	
 // set commands from EthernetIP source when in remote
 ELSE
-	bCmdSesOn  			:= GVL_REMOTE.bCmdSesOn; 
-	bCmdSesOff     		:= GVL_REMOTE.bCmdSesOff;
-	bCmdDeliveryOn		:= GVL_REMOTE.bCmdDeliveryOn;
-	bCmdDeliveryOff		:= GVL_REMOTE.bCmdDeliveryOff;
-	bCmdFaultReset 		:= GVL_REMOTE.bCmdFaultReset;
-	bCmdApplySetpoints	:= GVL_REMOTE.bCmdApplyFlow;
-	GVL_HMI.stHmiSetpoints.rSetFlow := GVL_REMOTE.rSetFlow;
+	R_TRIG(CLK := GVL_REMOTE.bCmdSesOn, 		Q => bCmdSesOn); 
+	R_TRIG(CLK := GVL_REMOTE.bCmdSesOff, 		Q => bCmdSesOff);
+	R_TRIG(CLK := GVL_REMOTE.bCmdDeliveryOn, 	Q => bCmdDeliveryOn);
+	R_TRIG(CLK := GVL_REMOTE.bCmdDeliveryOff, 	Q => bCmdDeliveryOff);
+	R_TRIG(CLK := GVL_REMOTE.bCmdFaultReset, 	Q => bCmdFaultReset);
+	R_TRIG(CLK := GVL_REMOTE.bCmdApplyFlow, 	Q => bCmdApplySetpoints);
+			
 END_IF
 
+// process HMI commands independent of remote/local control
 bCmdEnterMaint 		:= GVL_HMI.stHmiCommand.bEnterMaint;
 bCmdExitMaint  		:= GVL_HMI.stHmiCommand.bExitMaint;
 bCmdExtHeaterOn     := GVL_HMI.stHmiCommand.bExtHeaterOn;
@@ -111,7 +116,6 @@ bCmdDpLoopOff   	:= GVL_HMI.stHmiCommand.bDpControlOff;
 bCmdTempLoopOn 		:= GVL_HMI.stHmiCommand.bTempControlOn;
 bCmdTempLoopOff		:= GVL_HMI.stHmiCommand.bTempControlOff;
 bCmdSetTime			:= GVL_HMI.stHmiCommand.bSetTime;
-
 
 // clear stale cmds
 GVL_HMI.stHmiCommand.bSesOn      		:= FALSE;
@@ -132,14 +136,6 @@ GVL_HMI.stHmiCommand.bTempControlOff 	:= FALSE;
 GVL_HMI.stHmiCommand.bTempControlOn 	:= FALSE;
 GVL_HMI.stHmiCommand.bApplySetpoints	:= FALSE;
 GVL_HMI.stHmiCommand.bSetTime			:= FALSE;
-
-// clear stale cmds from EthernetIP
-GVL_REMOTE.bCmdSesOn 					:= FALSE; 
-GVL_REMOTE.bCmdSesOff					:= FALSE;
-GVL_REMOTE.bCmdDeliveryOn				:= FALSE;
-GVL_REMOTE.bCmdDeliveryOff				:= FALSE;
-GVL_REMOTE.bCmdFaultReset				:= FALSE;
-GVL_REMOTE.bCmdApplyFlow				:= FALSE;
 
 // Safety interlock: ignore SES ON during comm-lost or active fault display;
 // the state machine makes the final call, this is belt-and-braces.
@@ -168,7 +164,7 @@ GVL_REMOTE.bAnyFault := stFaults.bAnyFault;
 GVL_REMOTE.bSesOn := eState = E_SystemState.CheckIfHot OR eState = E_SystemState.FillWater 
 					 OR eState = E_SystemState.InitMain OR eState = E_SystemState.PurgeVessel
 					 OR eState = E_SystemState.SetDiffPressure OR eState = E_SystemState.SteamFlowing;
-GVL_REMOTE.bSteamReady := bDeliveryReady;
+GVL_REMOTE.bSteamReady := bReady;
 GVL_REMOTE.bDeliveryOn := bDeliveryPermit;
 IF GVL_HMI.stHmiSetpoints.bSetSize25L THEN GVL_REMOTE.nModelSlm := 25; 
 ELSIF GVL_HMI.stHmiSetpoints.bSetSize50L THEN GVL_REMOTE.nModelSlm := 50; END_IF
