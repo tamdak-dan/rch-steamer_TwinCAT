@@ -21,6 +21,8 @@ VAR_GLOBAL
     bCmdApplyFlow      AT %I* : BOOL;   // 8.5   take rSetFlow as the new flow setpoint
 	bCmdSpare1		   AT %I* : BOOL;   // 8.6	
 	bCmdSpare2		   AT %I* : BOOL;	// 8.7
+	nCmdSpare3		   AT %I* : BYTE;
+	nCmdSpare4		   AT %I* : INT;
 	
     // ---- OUTPUTS: PLC -> scanner (TwinCAT "Outputs" folder) ------ 72 bytes --
 	
@@ -55,7 +57,11 @@ VAR_GLOBAL
     bSesOn             AT %Q* : BOOL;    // 4   system enabled (startup or running)
 	bSteamReady	   	   AT %Q* : BOOL;    // 5   system is in run mode ready to deliver steam
     bDeliveryOn        AT %Q* : BOOL;    // 6   delivery enabled (SV3 open)
-
+	bOutSpare1		   AT %Q* : BOOL;
+	bOutSpare2		   AT %Q* : BOOL;
+	bOutSpare3		   AT %Q* : BOOL;
+	bOutSpare4		   AT %Q* : BOOL;
+	nOutSpare5		   AT %Q* : BYTE;
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>
