@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # TcXaeShell Solution File, Format Version 11.00
 VisualStudioVersion = 15.0.35826.109
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{B1E792BE-AA5F-4E3C-8C82-674BF9C0715B}") = "Steamer_102B-25", "Steamer_102B-25\Steamer_102B-25.tsproj", "{E0CE4D80-DA77-49DD-A359-7463F7BF7FB1}"
+Project("{B1E792BE-AA5F-4E3C-8C82-674BF9C0715B}") = "Steamer_102B", "Steamer_102B-25\Steamer_102B.tsproj", "{E0CE4D80-DA77-49DD-A359-7463F7BF7FB1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
