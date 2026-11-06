@@ -1264,19 +1264,19 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 				<Link VarA="PlcTask Inputs^GVL_IO.stEipAdsAddr" VarB="InfoData^AdsAddr"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 2 (EL1008)">
-				<Link VarA="PlcTask Inputs^GVL_IO.biLS1_WaterMidLevel" VarB="Channel 3^Input"/>
-				<Link VarA="PlcTask Inputs^GVL_IO.biLS3_WaterLowLevel" VarB="Channel 5^Input"/>
-				<Link VarA="PlcTask Inputs^GVL_IO.biTankFloodFault" VarB="Channel 2^Input"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.biLS1_WaterMidLevel" VarB="Channel 1^Input"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.biLS3_WaterLowLevel" VarB="Channel 2^Input"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.biTankFloodFault" VarB="Channel 3^Input"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 3 (EL2008)">
-				<Link VarA="PlcTask Outputs^GVL_IO.boH1_UpstreamHeater" VarB="Channel 5^Output"/>
-				<Link VarA="PlcTask Outputs^GVL_IO.boH2_SpaHeater" VarB="Channel 6^Output"/>
-				<Link VarA="PlcTask Outputs^GVL_IO.boH3_FlowmeterHeater" VarB="Channel 7^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boH1_UpstreamHeater" VarB="Channel 2^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boH2_SpaHeater" VarB="Channel 4^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boH3_FlowmeterHeater" VarB="Channel 6^Output"/>
 				<Link VarA="PlcTask Outputs^GVL_IO.boH4_ExternalHeater" VarB="Channel 8^Output"/>
 				<Link VarA="PlcTask Outputs^GVL_IO.boSV1_DrainValve" VarB="Channel 1^Output"/>
-				<Link VarA="PlcTask Outputs^GVL_IO.boSV2_SpaValve" VarB="Channel 2^Output"/>
-				<Link VarA="PlcTask Outputs^GVL_IO.boSV3_DeliveryValve" VarB="Channel 3^Output"/>
-				<Link VarA="PlcTask Outputs^GVL_IO.boSV4_WaterInletValve" VarB="Channel 4^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boSV2_SpaValve" VarB="Channel 3^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boSV3_DeliveryValve" VarB="Channel 5^Output"/>
+				<Link VarA="PlcTask Outputs^GVL_IO.boSV4_WaterInletValve" VarB="Channel 7^Output"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 5 (EL3314)">
 				<Link VarA="PlcTask Inputs^GVL_IO.aiTC1_SpaTemp" VarB="TC Inputs Channel 1^Value"/>
