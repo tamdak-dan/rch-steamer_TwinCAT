@@ -251,7 +251,7 @@ IF tonWaterEmpty.Q THEN
 END_IF
 
 // over-filled vessel check
-tonWaterOverfill(IN := GVL_IO.biLS2_WaterHighLevel, PT := tFullDelay);
+tonWaterOverfill(IN := GVL_IO.biLS1_WaterMidLevel, PT := tFullDelay);
 
 IF tonWaterOverfill.Q THEN
 	stFaults.bWaterOverFill := TRUE;

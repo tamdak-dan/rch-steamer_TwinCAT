@@ -74,8 +74,7 @@ ELSE
 END_IF
 
 // discrete signals
-stProcessValues.bWaterHigh := GVL_IO.biLS2_WaterHighLevel;
-stProcessValues.bWaterFull := GVL_IO.biLS1_WaterMidLevel AND NOT GVL_IO.biLS2_WaterHighLevel;
+stProcessValues.bWaterFull := GVL_IO.biLS1_WaterMidLevel;
 stProcessValues.bWaterLow := GVL_IO.biLS3_WaterLowLevel AND NOT GVL_IO.biLS1_WaterMidLevel;
 stProcessValues.bWaterEmpty := NOT GVL_IO.biLS3_WaterLowLevel;
 stProcessValues.bCabinetFloodSensor  := GVL_IO.biTankFloodFault;
