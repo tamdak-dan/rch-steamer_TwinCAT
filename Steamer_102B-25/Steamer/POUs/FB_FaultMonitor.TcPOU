@@ -250,13 +250,13 @@ IF tonWaterEmpty.Q THEN
 	_Report(E_FaultId.WaterEmpty);
 END_IF
 
-// over-filled vessel check
-tonWaterOverfill(IN := GVL_IO.biLS1_WaterMidLevel, PT := tFullDelay);
+// over-filled vessel check --> no high level sensor present
+(*tonWaterOverfill(IN := GVL_IO.biLS1_WaterMidLevel, PT := tFullDelay);
 
 IF tonWaterOverfill.Q THEN
 	stFaults.bWaterOverFill := TRUE;
 	_Report(E_FaultId.WaterOverFill);
-END_IF
+END_IF*)
 
 // Fill timeout: inlet has been open for the full fill window and the centre
 // switch still reports no water. Either the supply is dry or the inlet valve
