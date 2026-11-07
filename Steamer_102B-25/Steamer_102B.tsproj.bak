@@ -1265,8 +1265,8 @@ Bit1: Value bigger/equal Limit2]]></Comment>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 2 (EL1008)">
 				<Link VarA="PlcTask Inputs^GVL_IO.biLS1_WaterMidLevel" VarB="Channel 1^Input"/>
-				<Link VarA="PlcTask Inputs^GVL_IO.biLS3_WaterLowLevel" VarB="Channel 2^Input"/>
-				<Link VarA="PlcTask Inputs^GVL_IO.biTankFloodFault" VarB="Channel 3^Input"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.biLS3_WaterLowLevel" VarB="Channel 3^Input"/>
+				<Link VarA="PlcTask Inputs^GVL_IO.biTankFloodFault" VarB="Channel 5^Input"/>
 			</OwnerB>
 			<OwnerB Name="TIID^Device 1 (EtherCAT)^Term 1 (EK1200)^Term 3 (EL2008)">
 				<Link VarA="PlcTask Outputs^GVL_IO.boH1_UpstreamHeater" VarB="Channel 2^Output"/>
