@@ -52,11 +52,20 @@ CASE eState OF
 
     //-- Manual mode: HMI overrides drive the valves directly --------------
     E_SystemState.Maintenance:
-        bSV1_DrainValve    		:= arValveOverride[1];
-        bSV2_SpaValve      		:= arValveOverride[2];
-        bSV3_DeliveryValve 		:= arValveOverride[3];
-        bSV4_WaterInletValve    := arValveOverride[4];
+		IF GVL_HMI.stHmiCommand.bDrainMode THEN
+			bSV1_DrainValve    		:= TRUE;
+			bSV2_SpaValve      		:= TRUE;
+			bSV3_DeliveryValve 		:= FALSE;
+			bSV4_WaterInletValve    := TRUE;
+		ELSE
+			bSV1_DrainValve    		:= arValveOverride[1];
+			bSV2_SpaValve      		:= arValveOverride[2];
+			bSV3_DeliveryValve 		:= arValveOverride[3];
+			bSV4_WaterInletValve    := arValveOverride[4];
 
+		END_IF
+		
+        
     //-- Safe shutdown: SV1/3/4 closed; SV2 pressure-relief then delayed ----
     //   SV2 held open until upstream pressure < 800 Torr
     E_SystemState.SesOff, E_SystemState.InitController, E_SystemState.CheckIfHot, E_SystemState.Fault:
