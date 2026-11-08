@@ -57,7 +57,7 @@ VAR
 	
     // --- sequence watchdogs ------------------------------------------------
     tonWarmup           : TON;
-	tWarmup				: TIME := T#300S;
+	tWarmup				: TIME := T#360S;
     tonPurge            : TON;
     tonDiffPress        : TON;
 	tDiffPressTimeout	: TIME := T#20M;
