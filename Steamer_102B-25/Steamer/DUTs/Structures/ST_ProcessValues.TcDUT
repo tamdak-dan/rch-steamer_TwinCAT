@@ -41,6 +41,11 @@ STRUCT
 	bPowerFaultSensor 	: BOOL;		// power fault sensor
 	bCabinetFloodSensor	: BOOL;		// cabinet flood sensor
 	
+    // --- InitMain status --------------------------
+	bTempInBand			: BOOL;		// SPA temp in band
+	bFlowInBand			: BOOL;		// flow in band
+	bSpaFlushed			: BOOL;		// status from fbSpaFlush	
+	
 END_STRUCT
 END_TYPE
 ]]></Declaration>

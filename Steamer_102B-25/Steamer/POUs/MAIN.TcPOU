@@ -44,7 +44,12 @@ END_VAR
       <ST><![CDATA[//========================= FB CALLS =====================================
 
 // SCALE INPUTS
-fbProcessCalcs(eState := fbStateMachine.eState);
+fbProcessCalcs(
+	eState := fbStateMachine.eState,
+	bSpaFlushed := fbSpaFlush.bSpaFlushed,
+	bTempInBand := fbStateMachine.bTempInBand,
+	bFlowInBand := fbStateMachine.bFlowInBand
+);
 
 //========================= FAULT MONITOR ================================
 fbFaultMonitor(

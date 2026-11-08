@@ -12,6 +12,7 @@ VAR_INPUT
 	
 	// remote monitoring inputs
 	bDeliveryPermit			: BOOL;
+
 	
 	
 END_VAR
@@ -165,6 +166,7 @@ GVL_HMI.stHmiStatus.aActiveFaults 	:= aActiveFaults;
 GVL_HMI.stHmiStatus.stProcess    	:= stProcess;
 GVL_HMI.stHmiStatus.sPlcVersion 	:= GVL_HMI.S_PLC_VERSION;
 
+
 // publish status EthernetIP
 GVL_REMOTE.nStateCode := TO_BYTE(eState);
 GVL_REMOTE.bAnyFault := stFaults.bAnyFault; 
@@ -200,6 +202,9 @@ IF fbTick.Q THEN
     nUptimeSeconds := nUptimeSeconds + 1;
 END_IF
 GVL_HMI.stHmiStatus.nUptimeSeconds := nUptimeSeconds;
+
+
+
 ]]></ST>
     </Implementation>
   </POU>

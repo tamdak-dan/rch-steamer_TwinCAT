@@ -4,6 +4,11 @@
     <Declaration><![CDATA[FUNCTION_BLOCK FB_ProcessCalcs
 VAR_INPUT
 	eState				: E_SystemState;
+	
+	// InitMain
+	bSpaFlushed				: BOOL;
+	bTempInBand				: BOOL;
+	bFlowInBand				: BOOL;
 END_VAR
 VAR_OUTPUT
     stProcessValues 	: ST_ProcessValues;   		// this FB is the only writer
@@ -78,6 +83,13 @@ stProcessValues.bWaterFull := NOT GVL_IO.biLS1_WaterMidLevel;	// ADDED FOR NORMA
 stProcessValues.bWaterLow := NOT GVL_IO.biLS3_WaterLowLevel; // ADDED FOR NORMALLY CLOSED SENSOR
 stProcessValues.bWaterEmpty := GVL_IO.biLS3_WaterLowLevel; // ADDED FOR NORMALLY CLOSED SENSOR
 stProcessValues.bCabinetFloodSensor  := GVL_IO.biTankFloodFault;
+
+// InitMain vars for HMI
+stProcessValues.bSpaFlushed := bSpaFlushed;
+stProcessValues.bTempInBand	:= bTempInBand;
+stProcessValues.bFlowInBand := bFlowInBand;
+
+
 
 GVL_HMI.stHmiStatus.stProcess := stProcessValues;]]></ST>
     </Implementation>
