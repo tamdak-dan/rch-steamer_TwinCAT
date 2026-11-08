@@ -140,14 +140,14 @@
 		</System>
 		<Plc>
 			<Project GUID="{0620E3FE-F520-43EC-B6C2-27AFBA942A9A}" Name="Steamer" PrjFilePath="Steamer\Steamer.plcproj" TmcFilePath="Steamer\Steamer.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{196EB8EA-0B41-1409-D49F-CDBC563A23BD}" TmcPath="Steamer\Steamer.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{B553C57D-AB58-E750-8A93-478C60FF3361}" TmcPath="Steamer\Steamer.tmc">
 					<Name>Steamer Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">
 						<Name>PlcTask Outputs</Name>
 						<Var>
 							<Name>GVL_REMOTE.nStateCode</Name>
-							<Comment><![CDATA[ E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,]]></Comment>
+							<Comment><![CDATA[ E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater, 30 PurgeVessel, 40 SetDiffPressure, 50 InitMain, 60 SteamFlowing, 70 SesOff, 80 Maintenance, 99 Fault]]></Comment>
 							<Type>BYTE</Type>
 						</Var>
 						<Var>
@@ -192,7 +192,7 @@
 						</Var>
 						<Var>
 							<Name>GVL_REMOTE.nConnectionCode</Name>
-							<Comment><![CDATA[ 0 nothing, 1 connected and receiving,]]></Comment>
+							<Comment><![CDATA[ 0 nothing, 1 connected and receiving, 2 connected not receiving, 3 not connected]]></Comment>
 							<Type>BYTE</Type>
 						</Var>
 						<Var>

@@ -37,11 +37,8 @@ VAR_GLOBAL
     rTC4               AT %Q* : REAL;   // process out [degC]
 
 	// system BYTE
-	nStateCode         AT %Q* : BYTE;   // E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater,
-                                        // 30 PurgeVessel, 40 SetDiffPressure, 50 InitMain,
-                                        // 60 SteamFlowing, 70 SesOff, 80 Maintenance, 99 Fault
-	nConnectionCode	   AT %Q* : BYTE;	// 0 nothing, 1 connected and receiving,
-										// 2 connected not receiving, 3 not connected
+	nStateCode         AT %Q* : BYTE;   // E_SystemState: 0 Init, 10 CheckIfHot, 20 FillWater, 30 PurgeVessel, 40 SetDiffPressure, 50 InitMain, 60 SteamFlowing, 70 SesOff, 80 Maintenance, 99 Fault
+	nConnectionCode	   AT %Q* : BYTE;	// 0 nothing, 1 connected and receiving, 2 connected not receiving, 3 not connected
     nModelSlm          AT %Q* : BYTE;   // 25, 50, or 0 = not set
                                            
 	// fault codes
