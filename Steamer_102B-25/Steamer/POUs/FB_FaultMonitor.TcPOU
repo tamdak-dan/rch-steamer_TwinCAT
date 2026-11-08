@@ -51,6 +51,7 @@ VAR
     tonFmOverTemp       : TON;
     tonExtOverTemp      : TON;
     tonDsOverTemp       : TON;
+	tonStartup			: TON;
 
 	tGeneral_250ms		: TIME := T#250MS;
 	tGeneral_10s		: TIME := T#10S;
@@ -86,7 +87,9 @@ VAR
     bAnyFaultPrev       : BOOL;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[//--- Power fault. No filter: this is a hard utility loss. -------------------
+      <ST><![CDATA[tonStartup(IN := TRUE, PT := T#1M);
+
+//--- Power fault. No filter: this is a hard utility loss. -------------------
 IF stProcess.bPowerFaultSensor THEN
     stFaults.bPowerFault := TRUE;
     _Report(E_FaultId.PowerFault);
@@ -178,7 +181,7 @@ IF tonDsOverTemp.Q AND NOT bTestMode THEN
 END_IF
 
 //--- HMI communication loss. New in this system; no legacy equivalent. ------
-IF NOT bHmiHeartbeatOk THEN
+IF tonStartup.Q AND NOT bHmiHeartbeatOk THEN
     stFaults.bHmiCommLoss := TRUE;
     _Report(E_FaultId.HmiCommLoss);
 END_IF
