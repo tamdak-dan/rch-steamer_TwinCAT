@@ -37,6 +37,7 @@ VAR_INPUT
     bCenterSwitch    : BOOL;              // RAW LS1 center (X2). Filtered internally.
     bEmptySwitch     : BOOL;              // RAW LS3 empty  (X4). Filtered internally.
     bAutofillEnable  : BOOL;              // legacy X13 autofill-off signal
+	rFlowActual		 : REAL;
 END_VAR
 VAR_OUTPUT
     qFillValve       : BOOL;              // -> FB_OutputHandler -> SV4
@@ -169,7 +170,7 @@ CASE eMode OF
 			qFillValve := FALSE;
 		ELSE
 			tonCenterOn_Autofill(IN := bCenterSwitch, PT := T#2M);
-			tonCenterOff_Autofill(IN := NOT bCenterSwitch, PT := T#2M);
+			tonCenterOff_Autofill(IN := NOT bCenterSwitch, PT := T#30S);
 			
 			
 			IF bSample THEN
@@ -180,15 +181,15 @@ CASE eMode OF
 										 rTi       := GVL_SysParameters.rPid1_Ti,
 										 rTd       := GVL_SysParameters.rPid1_Td,
 										 rOutMin   := 5.0,
-										 rOutMax   := 35.0,
+										 rOutMax   := 50.0,
 										 rDt       := rDt);
 										 
 				rWaterLevel := rWaterLevel - rSteamFlow * rDrainFactor + rOutputPct * rFillFactor;
 				rWaterLevel := LIMIT(0.0, rWaterLevel, 100.0);
 			END_IF
 			
-			IF tonCenterOn_Autofill.Q THEN rOutputPct := 0; END_IF
-			IF tonCenterOff_Autofill.Q THEN rOutputPct := 35; END_IF
+			IF tonCenterOn_Autofill.Q THEN rOutputPct := rFlowActual*0.5; END_IF
+			IF tonCenterOff_Autofill.Q THEN rOutputPct := rFlowActual*1; END_IF
 			qFillValve := RunPwm(rDutyPct := rOutputPct);
 				 
 	

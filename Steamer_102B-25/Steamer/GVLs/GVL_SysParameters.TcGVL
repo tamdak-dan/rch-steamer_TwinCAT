@@ -53,7 +53,7 @@ VAR_GLOBAL
 		rPspGainOffset			: REAL := 0.0;		// [Torr] Never initialised in legacy
 		tSpRampInterval			: TIME := T#500MS;	// legacy = K5 (0.1 s units)
 		rSpRampStep				: REAL := 1.0;		// [Torr] per interval -> 2 Torr/s
-		rSpaTempSp				: REAL := 75;		// temp setpoint
+		rSpaTempSp				: REAL := 80;		// temp setpoint
 	 
 		// --- loop 2: SPA / purifier temperature -> H2 ---------------------------
 		rPid2_Kp				: REAL := 20.0;		// [%/degC]

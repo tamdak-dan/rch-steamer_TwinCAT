@@ -161,6 +161,7 @@ fbWaterFill(
 	bCenterSwitch := NOT GVL_IO.biLS1_WaterMidLevel, // ADDED FOR NORMALLY CLOSED SENSOR
 	bEmptySwitch := NOT GVL_IO.biLS3_WaterLowLevel, // ADDED FOR NORMALLY CLOSED SENSOR
 	bAutofillEnable := fbStateMachine.bAutofillEnable,
+	rFlowActual := fbProcessCalcs.stProcessValues.rFlowActual,
 	bFillComplete => GVL_HMI.stHmiStatus.bFillComplete,
 	bCenterFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterFull,
 	bEmptyFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterEmpty

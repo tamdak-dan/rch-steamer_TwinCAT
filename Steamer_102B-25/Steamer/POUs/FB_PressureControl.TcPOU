@@ -45,7 +45,8 @@ VAR_INPUT
     bExtHeaterEnable    : BOOL;              // HMI: external heater allowed
     stProcess           : ST_ProcessValues;  // scaled PVs
     stSetpoints         : ST_HmiSetpoints;   // operator setpoints, already clamped by FB_Hmi
-    rTargetDiffPressure : REAL;              // [Torr] from FB_FlowCalcs
+    rTargetDiffPressure : REAL;              // [Torr] from ProcessCalcs
+	rAtmPressure		: REAL;				 // atm pressure from ProcessCalcs
 	bFlushed            : BOOL;
 	bSpaPressurized		: BOOL;				 // SPA at pressure
 END_VAR
@@ -139,9 +140,9 @@ ELSIF eState = E_SystemState.InitMain AND NOT bFlushed THEN
     // SPA not flushed yet: PT3 + initial dP. The state machine cycles the
     // boiler across this setpoint N times to flush the SPA before release.
 	IF NOT bSpaPressurized THEN
-		rBoilerSpTarget := GVL_SysParameters.rAtmosphericPressure + GVL_SysParameters.rIniDeltaPressure;
+		rBoilerSpTarget := stProcess.rAtmPressure + GVL_SysParameters.rIniDeltaPressure;
 	ELSE
-		rBoilerSpTarget := GVL_SysParameters.rAtmosphericPressure + GVL_SysParameters.rIniDeltaPressure/2;
+		rBoilerSpTarget := stProcess.rAtmPressure + GVL_SysParameters.rIniDeltaPressure/2;
 	END_IF
     
 
