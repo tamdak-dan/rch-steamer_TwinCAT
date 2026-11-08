@@ -29,7 +29,7 @@ STRUCT
     // --- Flow [SLM] ---------------------------------------
     rFlowActual     	: REAL;    			// F3 calculated steam flow     
     rFlowSetpoint   	: REAL;    			// active flow setpoint         
-    rFlowRated      	: REAL := 25.0;    	// rated max flow    
+    rFlowRated      	: REAL;    	// rated max flow    
 	rFlowRatio			: REAL;				// FL_TO_DP23 = F3 / DP23 --> units: SLM per Torr  
 	rCondensateFlow		: REAL;				// flow through the small (drain/condensate) orifice         
 

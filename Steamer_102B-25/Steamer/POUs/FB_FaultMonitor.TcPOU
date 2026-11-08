@@ -331,6 +331,13 @@ END_IF
 // rather than merely large.
 // Only meaningful in production above 20% of rated flow; below that the
 // differential pressure signal is too small to draw conclusions from.
+IF GVL_HMI.stHmiSetpoints.bSetSize25L THEN
+	GVL_SysParameters.rMaxFlowDpRatio := 0.25;
+	stProcess.rFlowRated := 25;
+ELSIF GVL_HMI.stHmiSetpoints.bSetSize50L THEN
+	GVL_SysParameters.rMaxFlowDpRatio := 0.5;
+	stProcess.rFlowRated := 100;
+END_IF
 tonFlowRatio(IN := bSteamFlowing
  			 AND (stProcess.rFlowSetpoint > (0.20 * stProcess.rFlowRated))
 			 AND ( (stProcess.rDiffPressure <= 0.0)
