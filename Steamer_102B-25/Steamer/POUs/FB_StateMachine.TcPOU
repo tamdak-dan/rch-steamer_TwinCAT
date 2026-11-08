@@ -117,7 +117,7 @@ CASE eState OF
         // SPA warm (TC1 within band) AND steam flow already > x%*RatedFlow -> jump to SteamFlowing.
         // Otherwise cold start -> fill water
         bInStartup := TRUE;
-        IF _IsSpaWarm() AND (_FlowPercent() > GVL_SysParameters.rHotRestartFlowPct) THEN
+        IF _IsSpaWarm() AND (_FlowPercent() > GVL_SysParameters.rHotRestartFlowPct) AND bSpaFlushed THEN
             eState := E_SystemState.SteamFlowing;
 			bColdStart := FALSE;
 		ELSE
