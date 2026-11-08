@@ -170,7 +170,7 @@ CASE eMode OF
 			qFillValve := FALSE;
 		ELSE
 			tonCenterOn_Autofill(IN := bCenterSwitch, PT := T#15S);
-			tonCenterOff_Autofill(IN := NOT bCenterSwitch, PT := T#15S);
+			tonCenterOff_Autofill(IN := NOT bCenterSwitch, PT := T#5S);
 			
 			
 			IF bSample THEN
@@ -188,8 +188,14 @@ CASE eMode OF
 				rWaterLevel := LIMIT(0.0, rWaterLevel, 100.0);
 			END_IF
 			
-			IF tonCenterOn_Autofill.Q THEN rOutputPct := rFlowActual*0.2; END_IF
-			IF tonCenterOff_Autofill.Q THEN rOutputPct := rFlowActual*1; END_IF
+			IF tonCenterOn_Autofill.Q THEN 
+				rOutputPct := rFlowActual*0.15; 
+			ELSIF tonCenterOff_Autofill.Q THEN 
+				rOutputPct := rFlowActual*1; 
+			ELSE
+				rOutputPct := rFlowActual*0.25;
+			END_IF
+			
 			qFillValve := RunPwm(rDutyPct := rOutputPct);
 				 
 	

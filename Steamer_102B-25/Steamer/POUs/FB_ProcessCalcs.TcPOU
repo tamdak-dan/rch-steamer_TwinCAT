@@ -18,6 +18,8 @@ VAR
 	// pressure calculations
 	rCurrentMeasRange	: REAL := 32767; 		// 16bit signed INT --> 0-32767 is positive range
 	rSensorPressRange	: REAL := 1551.45;		// 0-30psia --> 0-1551.45torr
+	tmrWaterFill		: TON;
+	tWaterFillDelay		: TIME := T#20S;
 	
 	// flow calculations
 	rDp12 				: REAL;
@@ -30,6 +32,7 @@ VAR
 	rOrificeB1			: REAL := 0.0;			// main orifice offset
 	rOrificeB2			: REAL := 0.0;	 		// condensate offset
 	rOrificeB3			: REAL := 40; 			// torr offset
+	
 	
 END_VAR]]></Declaration>
     <Implementation>
@@ -45,10 +48,16 @@ stProcessValues.rPt1Upstream := stProcessValues.rPt1Upstream - stProcessValues.r
 stProcessValues.rPt2Downstream := TO_REAL(GVL_IO.aiPT2_DownstreamPressure)/rCurrentMeasRange * rSensorPressRange;
 stProcessValues.rDiffPressure := stProcessValues.rPt1Upstream - stProcessValues.rPt2Downstream;
 
-IF eState = E_SystemState.FillWater AND stProcessValues.rTc1Spa < 30 AND stProcessValues.rTc2FlowMeter < 30 THEN
-	stProcessValues.rAtmPressure := stProcessValues.rPt2Downstream;
-	stProcessValues.rDiffPressureOffset := (TO_REAL(GVL_IO.aiPT1_UpstreamPressure)/rCurrentMeasRange * rSensorPressRange) - 
+IF eState = E_SystemState.FillWater THEN
+	tmrWaterFill(IN := TRUE, PT := tWaterFillDelay); 
+	// take atm pressure reading
+	IF tmrWaterFill.Q AND stProcessValues.rTc1Spa < 50 AND stProcessValues.rTc2FlowMeter < 50 THEN
+		stProcessValues.rAtmPressure := stProcessValues.rPt2Downstream;
+		stProcessValues.rDiffPressureOffset := (TO_REAL(GVL_IO.aiPT1_UpstreamPressure)/rCurrentMeasRange * rSensorPressRange) - 
 										   (TO_REAL(GVL_IO.aiPT2_DownstreamPressure)/rCurrentMeasRange * rSensorPressRange);
+	END_IF
+ELSE
+	tmrWaterFill(IN := FALSE);
 END_IF
 
 // flow calculations
@@ -88,6 +97,13 @@ stProcessValues.bCabinetFloodSensor  := GVL_IO.biTankFloodFault;
 stProcessValues.bSpaFlushed := bSpaFlushed;
 stProcessValues.bTempInBand	:= bTempInBand;
 stProcessValues.bFlowInBand := bFlowInBand;
+
+// system selected
+IF GVL_HMI.stHmiSetpoints.bSetSize25L THEN
+	stProcessValues.rFlowRated := 25;
+ELSIF GVL_HMI.stHmiSetpoints.bSetSize50L THEN
+	stProcessValues.rFlowRated := 50;
+END_IF
 
 
 
