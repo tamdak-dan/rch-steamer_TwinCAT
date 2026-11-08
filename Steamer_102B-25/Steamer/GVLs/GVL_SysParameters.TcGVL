@@ -23,7 +23,7 @@ VAR_GLOBAL
 	// --- Function Blocks ----------------------------------------------------
 
 	// FB_WaterFill
-		tDebounceTimer 			: TIME := T#2S;
+		tDebounceTimer 			: TIME := T#100MS;
 		tStartupFillTimeout		: TIME := T#15M;
 		tFillConfirmDelay		: TIME := T#5S;
 		tAutoFillTimeout		: TIME := T#1M;

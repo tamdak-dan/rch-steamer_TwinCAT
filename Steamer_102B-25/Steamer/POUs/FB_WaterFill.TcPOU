@@ -189,11 +189,11 @@ CASE eMode OF
 			END_IF
 			
 			IF tonCenterOn_Autofill.Q THEN 
-				rOutputPct := rFlowActual*0.15; 
+				rOutputPct := rFlowActual*0.3; 
 			ELSIF tonCenterOff_Autofill.Q THEN 
-				rOutputPct := rFlowActual*1; 
+				rOutputPct := rFlowActual*0.9; 
 			ELSE
-				rOutputPct := rFlowActual*0.25;
+				rOutputPct := rFlowActual*0.425;
 			END_IF
 			
 			qFillValve := RunPwm(rDutyPct := rOutputPct);

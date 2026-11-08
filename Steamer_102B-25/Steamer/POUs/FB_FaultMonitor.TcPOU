@@ -312,7 +312,7 @@ END_IF
 // equalised to atmosphere - at that point both transducers must agree, and
 // must agree with atmospheric pressure. Any disagreement means one of them has
 // drifted, and every downstream flow calculation would inherit the error.
-IF eState = E_SystemState.FillWater AND NOT bTestMode THEN
+IF eState = E_SystemState.FillWater AND stProcessValues.rTc1Spa < 30 AND stProcessValues.rTc2FlowMeter < 30 THEN AND NOT bTestMode THEN
     IF (stProcess.rPt2Downstream > GVL_SysParameters.rP3AbsMax)
        OR (stProcess.rPt2Downstream < GVL_SysParameters.rP3AbsMin)
 	   OR (ABS(stProcess.rDiffPressureOffset) > GVL_SysParameters.rPtMaxVariance) THEN
