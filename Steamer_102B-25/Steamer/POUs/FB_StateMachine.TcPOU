@@ -179,7 +179,9 @@ CASE eState OF
     E_SystemState.InitMain:         // S50 : final checks before flow
     //--------------------------------------------------------------------
 		IF bEntry THEN
-			IF GVL_HMI.stHmiSetpoints.rSetFlow = 0 THEN
+			IF GVL_HMI.stHmiSetpoints.rSetFlow < 5 AND GVL_HMI.stHmiSetpoints.bSetSize25L THEN
+				GVL_HMI.stHmiSetpoints.rSetFlow := 5;
+			ELSIF GVL_HMI.stHmiSetpoints.rSetFlow < 10 AND GVL_HMI.stHmiSetpoints.bSetSize50L THEN
 				GVL_HMI.stHmiSetpoints.rSetFlow := 10;
 			END_IF
 		END_IF
