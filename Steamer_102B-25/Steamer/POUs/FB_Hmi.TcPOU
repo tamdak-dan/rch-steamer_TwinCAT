@@ -93,7 +93,7 @@ rtReset    (CLK := GVL_REMOTE.bCmdFaultReset);
 rtApplyFlow(CLK := GVL_REMOTE.bCmdApplyFlow);
 
 // set commands from HMI when in 'local' (HMI) control
-IF GVL_HMI.stHmiSetpoints.bSetRemoteMode = FALSE THEN
+IF GVL_HMI.stHmiSetpoints.bSetRemoteMode = 0 THEN
 	bCmdSesOn  			:= GVL_HMI.stHmiCommand.bSesOn; 
 	bCmdSesOff     		:= GVL_HMI.stHmiCommand.bSesOff;
 	bCmdDeliveryOn		:= GVL_HMI.stHmiCommand.bSteamDeliveryOn;
@@ -103,7 +103,7 @@ IF GVL_HMI.stHmiSetpoints.bSetRemoteMode = FALSE THEN
 	bCmdApplySetpoints	:= GVL_HMI.stHmiCommand.bApplySetpoints;
 	
 // set commands from EthernetIP source when in remote
-ELSE
+ELSIF GVL_HMI.stHmiSetpoints.bSetRemoteMode = 1 THEN
     bCmdSesOn          := rtSesOn.Q;
     bCmdSesOff         := rtSesOff.Q;
     bCmdDeliveryOn     := rtDelOn.Q;

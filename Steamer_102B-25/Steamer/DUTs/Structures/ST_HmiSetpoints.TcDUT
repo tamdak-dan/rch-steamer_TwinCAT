@@ -19,7 +19,7 @@ STRUCT
 	rSetElevation			: REAL;				// meters above seal level [MASL] 
 	bSetSize25L				: BOOL := TRUE;		// set size to 25L (default)
 	bSetSize50L				: BOOL;				// set size to 50L
-	bSetRemoteMode 			: BOOL;				// 0 for HMI contorl, 1 for EIP control
+	bSetRemoteMode 			: BYTE;				// 0 for HMI contorl, 1 for EIP control
 	//Ethernet/IP vars
 	nIp, nMask,	nGateway	: UDINT;			// EIP ip addr, subnet mask, default gateway
 END_STRUCT

@@ -55,6 +55,7 @@ VAR
 	// autofill switch delay timers
 	tonCenterOn_Autofill : TON;
 	tonCenterOff_Autofill : TON;
+	tonCenterOff_AfHigh	  : TON;
 
     // ---- startup fill (K8) -------------------------------------------------
     tonFillDwell     : TON; // fixed confirm (tFillConfirm = 5 s)
@@ -171,6 +172,7 @@ CASE eMode OF
 		ELSE
 			tonCenterOn_Autofill(IN := bCenterSwitch, PT := T#15S);
 			tonCenterOff_Autofill(IN := NOT bCenterSwitch, PT := T#5S);
+			tonCenterOff_AfHigh(IN := NOT bCenterSwitch, PT := T#30S);
 			
 			
 			IF bSample THEN
@@ -181,7 +183,7 @@ CASE eMode OF
 										 rTi       := GVL_SysParameters.rPid1_Ti,
 										 rTd       := GVL_SysParameters.rPid1_Td,
 										 rOutMin   := 5.0,
-										 rOutMax   := 50.0,
+										 rOutMax   := 70.0,
 										 rDt       := rDt);
 										 
 				rWaterLevel := rWaterLevel - rSteamFlow * rDrainFactor + rOutputPct * rFillFactor;
@@ -190,8 +192,13 @@ CASE eMode OF
 			
 			IF tonCenterOn_Autofill.Q THEN 
 				rOutputPct := rFlowActual*0.3; 
-			ELSIF tonCenterOff_Autofill.Q THEN 
-				rOutputPct := rFlowActual*0.9; 
+			ELSIF tonCenterOff_Autofill.Q THEN
+				IF tonCenterOff_AfHigh.Q THEN
+					rOutputPct := rFlowActual*1.5; 
+				ELSE
+					rOutputPct := rFlowActual*0.6; 
+				END_IF
+				
 			ELSE
 				rOutputPct := rFlowActual*0.425;
 			END_IF

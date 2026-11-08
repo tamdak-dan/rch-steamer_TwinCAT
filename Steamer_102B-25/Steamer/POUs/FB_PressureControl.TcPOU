@@ -189,7 +189,7 @@ ELSE
     tPwmPeriod1 := GVL_SysParameters.tPid1PwmPeriod;
 	rDutyCap1 := 100.0 * UDINT_TO_REAL(TIME_TO_UDINT(GVL_SysParameters.tPid1MaxOnTime))
 			   / UDINT_TO_REAL(TIME_TO_UDINT(tPwmPeriod1));
-	rDutyCap1 := LIMIT(0.0, rDutyCap1, 50.0);
+	rDutyCap1 := LIMIT(0.0, rDutyCap1, 80.0);
 END_IF
 
 
