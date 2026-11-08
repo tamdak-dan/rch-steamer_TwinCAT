@@ -83,7 +83,7 @@ VAR_GLOBAL
 		rExtTempMinRise			: REAL := 5.0;		// minimum temp to rise without triggering ext fault
 		rExtMinReadyTemp		: REAL := 95.0;		// external heater low limit when steam ready
 		rDsHighStartPressure	: REAL := 1500.0;	// max starting pressure for downstream sensor
-		rP3AbsMax				: REAL := 785.0;	// max atmospheric pressure 
+		rP3AbsMax				: REAL := 800.0;	// max atmospheric pressure 
 		rP3AbsMin				: REAL := 575.0;	// min atmospheric pressure
 		rPtMaxVariance			: REAL := 10.0;		// 
 		rMaxFlowDpRatio			: REAL := 0.25;		// rated_flow(×10 SLM) × 0.001 = 250 × 0.001 = 0.25 SLM/Torr

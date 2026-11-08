@@ -158,8 +158,8 @@ fbStateMachine(
 fbWaterFill(
 	eMode := fbStateMachine.eWaterFillMode,
 	rSteamFlow := fbProcessCalcs.stProcessValues.rFlowActual,
-	bCenterSwitch := GVL_IO.biLS1_WaterMidLevel,
-	bEmptySwitch := GVL_IO.biLS3_WaterLowLevel,
+	bCenterSwitch := NOT GVL_IO.biLS1_WaterMidLevel, // ADDED FOR NORMALLY CLOSED SENSOR
+	bEmptySwitch := NOT GVL_IO.biLS3_WaterLowLevel, // ADDED FOR NORMALLY CLOSED SENSOR
 	bAutofillEnable := fbStateMachine.bAutofillEnable,
 	bFillComplete => GVL_HMI.stHmiStatus.bFillComplete,
 	bCenterFiltered => GVL_HMI.stHmiStatus.stProcess.bWaterFull,

@@ -294,15 +294,20 @@ VAR
     rQtotal 	: REAL;
 	
 	// target dp calculation
-	rOrificeA1				: REAL := 0.05946087;	// main orifice coefficient
-	rOrificeB1				: REAL := 0.0;			// main orifice offset
-	rPtMinTorr				: REAL := 50;			// minimum torr to enable calculated flow
+	rOrificeA1_25			: REAL := 0.05946087;	// main orifice coefficient
+	rOrificeA1_50			: REAL := 0.09;			// main orifice coefficient
+	rOrificeB1				: REAL := 0.0;				// main orifice offset
+	rPtMinTorr				: REAL := 50;				// minimum torr to enable calculated flow
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[rQtotal := rFlowSp + stProcess.rCondensateFlow + rOrificeB1;
 
 IF stProcess.rPt2Downstream > rPtMinTorr THEN
-    _TargetDiffPressure := (rQtotal * rQtotal)/(rOrificeA1 * rOrificeA1)/stProcess.rPt2Downstream;
+	IF GVL_HMI.stHmiSetpoints.bSetSize25L THEN
+		_TargetDiffPressure := (rQtotal * rQtotal)/(rOrificeA1_25 * rOrificeA1_25)/stProcess.rPt2Downstream;
+	ELSE
+		_TargetDiffPressure := (rQtotal * rQtotal)/(rOrificeA1_50 * rOrificeA1_50)/stProcess.rPt2Downstream;
+	END_IF
 ELSE
     _TargetDiffPressure := 0.0;
 END_IF]]></ST>

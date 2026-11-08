@@ -243,7 +243,7 @@ END_IF
 // Empty-vessel check. The filter is deliberately much longer during purge,
 // because purge repeatedly drains the vessel on purpose and the level would
 // otherwise trip this constantly.
-tonWaterEmpty(IN := bWaterEmptyFiltered, PT := SEL(bPurgeActive, T#2S, T#30S));
+tonWaterEmpty(IN := NOT bWaterEmptyFiltered, PT := SEL(bPurgeActive, T#2S, T#30S));
 
 IF tonWaterEmpty.Q THEN
 	stFaults.bWaterEmpty := TRUE;
