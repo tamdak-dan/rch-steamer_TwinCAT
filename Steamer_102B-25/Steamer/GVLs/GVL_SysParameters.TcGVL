@@ -27,7 +27,7 @@ VAR_GLOBAL
 		tStartupFillTimeout		: TIME := T#15M;
 		tFillConfirmDelay		: TIME := T#5S;
 		tAutoFillTimeout		: TIME := T#1M;
-		tStartupFillDelay		: TIME := T#10s;
+		tStartupFillDelay		: TIME := T#15s;
 		tAutoFillDelay			: TIME := T#4S;	
 		tAutofillPidSample		: TIME := T#1s;
 	
