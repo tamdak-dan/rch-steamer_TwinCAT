@@ -27,7 +27,8 @@ STRUCT
     rTc4Delivery    	: REAL;    	// TC4 delivery line temperature
 
     // --- Flow [SLM] ---------------------------------------
-    rFlowActual     	: REAL;    			// F3 calculated steam flow     
+    rFlowActual     	: REAL;    			// F3 calculated steam flow 
+	rFlowFiltered		: REAL;    
     rFlowSetpoint   	: REAL;    			// active flow setpoint         
     rFlowRated      	: REAL;    	// rated max flow    
 	rFlowRatio			: REAL;				// FL_TO_DP23 = F3 / DP23 --> units: SLM per Torr  

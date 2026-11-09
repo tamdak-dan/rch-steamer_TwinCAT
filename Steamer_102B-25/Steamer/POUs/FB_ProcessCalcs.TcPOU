@@ -33,6 +33,14 @@ VAR
 	rOrificeB2			: REAL := 0.0;	 		// condensate offset
 	rOrificeB3			: REAL := 40; 			// torr offset
 	
+	// steam filter
+	fbSteamFilter 		: FB_CTRL_PT1;
+	stPT1Params   		: ST_CTRL_PT1_PARAMS;
+    fSteamFlowRaw 		: LREAL;
+    fSteamFlowFilt		: LREAL;
+    bInit         		: BOOL := TRUE;
+
+	
 	
 END_VAR]]></Declaration>
     <Implementation>
@@ -86,6 +94,21 @@ IF stProcessValues.rPt1Upstream > stProcessValues.rPt2Downstream THEN
 ELSE
     stProcessValues.rFlowActual := 0.0;
 END_IF
+
+// calc and store filtered flow
+IF bInit THEN
+    stPT1Params.tTaskCycleTime := T#10MS;   // match your PLC task cycle
+    stPT1Params.tCtrlCycleTime := T#10MS;
+    stPT1Params.fKp            := 1.0;      // unity gain
+    stPT1Params.tT1            := T#3S;     // filter time constant: tune this
+    bInit := FALSE;
+END_IF
+
+fbSteamFilter(
+    fIn      := stProcessValues.rFlowActual,
+    eMode    := eCTRL_MODE_ACTIVE,
+    stParams := stPT1Params,
+    fOut     => stProcessValues.rFlowFiltered);
 
 // discrete signals
 stProcessValues.bWaterFull := NOT GVL_IO.biLS1_WaterMidLevel;	// ADDED FOR NORMALLY CLOSED SENSOR
