@@ -45,7 +45,8 @@ STRUCT
     // --- InitMain status --------------------------
 	bTempInBand			: BOOL;		// SPA temp in band
 	bFlowInBand			: BOOL;		// flow in band
-	bSpaFlushed			: BOOL;		// status from fbSpaFlush	
+	bSpaFlushed			: BOOL;		// status from fbSpaFlush
+	nSpaCorssings		: UINT;		// #time spa flush	
 	
 END_STRUCT
 END_TYPE

@@ -9,6 +9,8 @@ VAR_INPUT
 	bSpaFlushed				: BOOL;
 	bTempInBand				: BOOL;
 	bFlowInBand				: BOOL;
+	nSpaCrossings			: UINT;
+	
 END_VAR
 VAR_OUTPUT
     stProcessValues 	: ST_ProcessValues;   		// this FB is the only writer
@@ -98,9 +100,9 @@ END_IF
 // calc and store filtered flow
 IF bInit THEN
     stPT1Params.tTaskCycleTime := T#10MS;   // match your PLC task cycle
-    stPT1Params.tCtrlCycleTime := T#10MS;
-    stPT1Params.fKp            := 1.0;      // unity gain
-    stPT1Params.tT1            := T#3S;     // filter time constant: tune this
+    stPT1Params.tCtrlCycleTime := T#250MS;
+    stPT1Params.fKp            := 1;      // unity gain
+    stPT1Params.tT1            := T#20S;     // filter time constant: tune this
     bInit := FALSE;
 END_IF
 
@@ -120,6 +122,7 @@ stProcessValues.bCabinetFloodSensor  := GVL_IO.biTankFloodFault;
 stProcessValues.bSpaFlushed := bSpaFlushed;
 stProcessValues.bTempInBand	:= bTempInBand;
 stProcessValues.bFlowInBand := bFlowInBand;
+stProcessValues.nSpaCorssings := nSpaCrossings;
 
 // system selected
 IF GVL_HMI.stHmiSetpoints.bSetSize25L THEN

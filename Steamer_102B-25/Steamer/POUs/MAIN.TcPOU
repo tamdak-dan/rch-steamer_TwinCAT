@@ -48,7 +48,8 @@ fbProcessCalcs(
 	eState := fbStateMachine.eState,
 	bSpaFlushed := fbSpaFlush.bSpaFlushed,
 	bTempInBand := fbStateMachine.bTempInBand,
-	bFlowInBand := fbStateMachine.bFlowInBand
+	bFlowInBand := fbStateMachine.bFlowInBand,
+	nSpaCrossings := fbSpaFlush.nCrossings
 );
 
 //========================= FAULT MONITOR ================================
